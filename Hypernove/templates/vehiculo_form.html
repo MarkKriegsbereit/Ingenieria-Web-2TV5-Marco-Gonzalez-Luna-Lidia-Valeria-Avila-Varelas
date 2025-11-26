@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ 'Registrar' if accion=='crear' else 'Editar' }} Vehículo</h2>
+<form method="post">
+  <label>Nombre</label>
+  <input name="nombre" value="{{ vehiculo.Nombre_Vehiculo if vehiculo else '' }}" required>
+  <label>Categoria</label>
+  <input name="categoria" value="{{ vehiculo.Categoria if vehiculo else '' }}" required>
+  <label>Estado</label>
+  <select name="estado">
+    <option value="operativo" {% if vehiculo and vehiculo.Estado=='operativo' %}selected{% endif %}>operativo</option>
+    <option value="requiere revision" {% if vehiculo and vehiculo.Estado=='requiere revision' %}selected{% endif %}>requiere revision</option>
+  </select>
+  <button type="submit">Guardar</button>
+</form>
+{% endblock %}

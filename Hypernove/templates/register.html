@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro - Hypernova</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- IMPORTANTE: Vinculación del JS externo -->
+    <script src="{{ url_for('static', filename='js/register.js') }}"></script>
+
+    <style>
+        body {
+            background-color: #0a0a0a; color: white; font-family: 'Roboto', sans-serif;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0;
+        }
+        .login-card {
+            background-color: #1a1a1a; padding: 2.5rem; border-radius: 15px;
+            box-shadow: 0 0 25px rgba(138, 43, 226, 0.4); border: 1px solid #8A2BE2;
+            width: 100%; max-width: 400px; text-align: center;
+        }
+        h2 { font-family: 'Orbitron'; margin-bottom: 1rem; color: #fff; }
+        
+        /* Inputs */
+        .form-group { text-align: left; margin-bottom: 15px; }
+        label { display: block; font-size: 0.85rem; color: #8A2BE2; margin-bottom: 5px; }
+        
+        input {
+            width: 100%; padding: 10px; border-radius: 5px;
+            border: 1px solid #444; background: #222; color: white; box-sizing: border-box;
+        }
+        input:focus { border-color: #8A2BE2; outline: none; }
+
+        /* Mensajes de error (Estilo para los <small>) */
+        .error-text { color: #ff4444; font-size: 0.8rem; margin-top: 2px; display: block; min-height: 18px; }
+        
+        /* Botones */
+        button {
+            width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 5px;
+            cursor: pointer; font-weight: bold; font-family: 'Orbitron';
+            background-color: #8A2BE2; color: white; transition: 0.3s;
+        }
+        button:hover { background-color: #7b24ca; }
+        
+        a { color: #ccc; font-size: 0.9rem; text-decoration: none; display: block; margin-top: 15px; }
+        a:hover { color: white; }
+
+        .server-msg {
+            background: rgba(220, 53, 69, 0.2); border: 1px solid #dc3545; 
+            color: #ff6b6b; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 0.9rem;
+        }
+        #mensajeExito { font-weight: bold; margin-top: 10px; font-size: 0.9rem; min-height: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <h2>NUEVO USUARIO</h2>
+
+    {% if mensaje %}
+        <div class="server-msg">{{ mensaje }}</div>
+    {% endif %}
+
+    <form method="POST" onsubmit="return validarFormulario(event)">
+        
+        <div class="form-group">
+            <label>Nombre de Usuario</label>
+            <input type="text" name="username" placeholder="Tu nombre" required>
+        </div>
+
+        <div class="form-group">
+            <label>Correo Electrónico</label>
+            <!-- ID 'usuario' es necesario para el JS -->
+            <input type="email" name="email" id="usuario" placeholder="ejemplo@correo.com" required>
+            <small id="errorUsuario" class="error-text"></small>
+        </div>
+
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" name="password" id="password" required>
+            <small id="errorPassword" class="error-text"></small>
+        </div>
+
+        <div class="form-group">
+            <label>Confirmar Contraseña</label>
+            <input type="password" name="password2" id="confirmPassword" required>
+            <small id="errorConfirmPassword" class="error-text"></small>
+        </div>
+
+        <div id="mensajeExito"></div>
+
+        <button type="submit">REGISTRARSE</button>
+    </form>
+
+    <a href="{{ url_for('login') }}">¿Ya tienes cuenta? Iniciar sesión</a>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hypernova Aerospace</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        /* Estilo extra para el botón si no carga el CSS externo */
+        .cta-button {
+            padding: 15px 40px; font-size: 1.2rem; background: linear-gradient(45deg, #8A2BE2, #4B0082);
+            color: white; text-decoration: none; border-radius: 50px; font-family: 'Orbitron';
+            transition: 0.3s; box-shadow: 0 0 15px rgba(138, 43, 226, 0.5); border: 2px solid transparent; display: inline-block;
+        }
+        .cta-button:hover { transform: scale(1.05); background: transparent; border-color: #8A2BE2; }
+        
+        /* Hero Section para que se vea bien si falla el CSS externo */
+        .hero {
+            height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop');
+            background-size: cover; background-position: center; text-align: center; color: white;
+        }
+        .hero-content h1 { font-size: 3rem; margin-bottom: 10px; text-shadow: 0 0 20px #8A2BE2; }
+        .hero-content p { font-size: 1.2rem; max-width: 600px; margin-bottom: 30px; color: #ddd; }
+    </style>
+</head>
+<body>
+
+    <!-- Nota: El Navbar se hereda si usas 'extends', pero aquí está hardcodeado como en tu ejemplo -->
+    <nav class="navbar">
+        <div class="container navbar-container">
+            <a href="#inicio" class="logo">HYPER<span>NOVA</span></a>
+            <ul class="nav-links">
+                <li><a href="#inicio">Inicio</a></li>
+                <li><a href="#quienes-somos">Quiénes Somos</a></li>
+                <li><a href="#vehiculos">Vehículos</a></li>
+                <li><a href="{{ url_for('catalogo_misiones') }}">Misiones</a></li> 
+                
+                <!-- LÓGICA DE SESIÓN -->
+                {% if session.get('user_id') %}
+                    <li>
+                        <a href="{{ url_for('catalogo_misiones') }}" 
+                           class="cta-button" 
+                           style="padding: 0.5rem 1rem; font-size: 0.9rem; background: transparent; border: 1px solid #8A2BE2;">
+                           IR AL PANEL 🚀
+                        </a>
+                    </li>
+                {% else %}
+                    <li><a href="{{ url_for('login') }}">Sign in</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+    <header id="inicio" class="hero">
+        <div class="hero-content container">
+            <h1>Telemetría Espacial al Instante</h1>
+            <p>Monitorea, analiza y visualiza los datos de tus misiones de cohetería como nunca antes.</p>
+            
+            <!-- BOTÓN PRINCIPAL INTELIGENTE -->
+            {% if session.get('user_id') %}
+                 <a href="{{ url_for('catalogo_misiones') }}" class="cta-button">
+                    VER MISIONES EN VIVO
+                 </a>
+            {% else %}
+                 <a href="#vehiculos" class="cta-button">Explorar Vehículos</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <main>
+        <section id="quienes-somos" style="padding: 4rem 2rem; background: #111;">
+            <div class="container" style="max-width: 900px; margin: auto; text-align: center;">
+                <h2 class="section-title" style="color: white; font-family: 'Orbitron'; margin-bottom: 20px;">Nuestra Misión</h2>
+                <p style="color: #ccc; line-height: 1.6;">
+                    Somos un equipo de desarrolladores e ingenieros dedicados a democratizar el acceso a la telemetría aeroespacial. Creamos herramientas poderosas y accesibles para que equipos de cohetería amateur, universidades y entusiastas puedan lanzar sus proyectos al siguiente nivel.
+                </p>
+            </div>
+        </section>
+
+        <section id="vehiculos" style="padding: 4rem 2rem;">
+            <div class="container">
+                <h2 class="section-title" style="text-align: center; color: white; font-family: 'Orbitron'; margin-bottom: 40px;">Vehículos Compatibles</h2>
+                <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
+                    
+                    <!-- Tarjetas estáticas (solo visuales) -->
+                    <div class="vehiculo-card" style="background: #222; border: 1px solid #444; border-radius: 10px; width: 300px; overflow: hidden;">
+                        <img src="https://images.unsplash.com/photo-1614649024145-7f847b1c408c?q=80&w=1974&auto=format&fit=crop" style="width: 100%; height: 200px; object-fit: cover;">
+                        <div class="card-content" style="padding: 20px;">
+                            <h3 style="color: white; font-family: 'Orbitron';">Cohetes</h3>
+                            <p style="color: #aaa; font-size: 0.9rem;">Soporte completo para sistemas de aviónica en cohetes suborbitales.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="vehiculo-card" style="background: #222; border: 1px solid #444; border-radius: 10px; width: 300px; overflow: hidden;">
+                        <img src="https://images.unsplash.com/photo-1598421273516-e578a1a3696a?q=80&w=2070&auto=format&fit=crop" style="width: 100%; height: 200px; object-fit: cover;">
+                        <div class="card-content" style="padding: 20px;">
+                            <h3 style="color: white; font-family: 'Orbitron';">CanSat</h3>
+                            <p style="color: #aaa; font-size: 0.9rem;">Visualiza datos de sensores atmosféricos durante el descenso.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer" style="text-align: center; padding: 20px; background: #000; color: #666;">
+        <div class="container">
+            <p>&copy; 2025 Hypernova. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

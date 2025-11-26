@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ 'Crear' if accion=='crear' else 'Editar' }} Misión</h2>
+<form method="post">
+  <label>Nombre</label>
+  <input name="nombre" value="{{ mision.Nombre_Mision if mision else '' }}" required>
+  <label>Fecha</label>
+  <input type="date" name="fecha" value="{{ mision.Fecha if mision and mision.Fecha else '' }}">
+  <label>Lugar</label>
+  <input name="lugar" value="{{ mision.Lugar if mision else '' }}">
+  <label>Vehículo</label>
+  <select name="vehiculo">
+    <option value="">(Ninguno)</option>
+    {% for v in vehiculos %}
+      <option value="{{ v.ID_Vehiculo }}" {% if mision and mision.FK_ID_Vehiculo==v.ID_Vehiculo %}selected{% endif %}>{{ v.Nombre_Vehiculo }}</option>
+    {% endfor %}
+  </select>
+  <label>Asignar usuario</label>
+  <select name="usuario">
+    <option value="">(Ninguno)</option>
+    {% for u in usuarios %}
+      <option value="{{ u.ID_Usuario }}" {% if mision and mision.FK_ID_Usuario==u.ID_Usuario %}selected{% endif %}>{{ u.Nombre }} ({{ u.Rol }})</option>
+    {% endfor %}
+  </select>
+  <button type="submit">Guardar</button>
+</form>
+{% endblock %}

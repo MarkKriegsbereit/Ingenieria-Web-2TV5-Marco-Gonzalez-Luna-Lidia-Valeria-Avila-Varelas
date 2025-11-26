@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Usuarios</h2>
+<a href="{{ url_for('usuarios_crear') }}">Crear usuario</a>
+<table>
+  <tr><th>ID</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Acciones</th></tr>
+  {% for u in usuarios %}
+  <tr>
+    <td>{{ u.ID_Usuario }}</td>
+    <td>{{ u.Nombre }}</td>
+    <td>{{ u.email }}</td>
+    <td>{{ u.Rol }}</td>
+
+
+
+
+
+    <td class="acciones">
+      {% if session.role == 'admin' %}
+        <div class="acciones-contenedor">
+          <a class="btn-editar" href="{{ url_for('usuarios_editar', id=u.ID_Usuario) }}">Editar</a>
+
+          <form action="{{ url_for('usuarios_eliminar', id=u.ID_Usuario) }}" method="post">
+            <button class="btn-eliminar" type="submit" onclick="return confirm('Eliminar?')">Eliminar</button>
+          </form>
+        </div>
+      {% endif %}
+    </td>
+
+
+
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

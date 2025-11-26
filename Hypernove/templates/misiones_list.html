@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Misiones</h2>
+{% if session.role == 'admin' %}
+  <a href="{{ url_for('misiones_crear') }}">Crear misión</a>
+{% endif %}
+<table>
+  <tr><th>ID</th><th>Nombre</th><th>Fecha</th><th>Lugar</th><th>Vehículo</th><th>Usuario</th><th>Acciones</th></tr>
+  {% for m in misiones %}
+  <tr>
+    <td>{{ m.ID_Mision }}</td>
+    <td>{{ m.Nombre_Mision }}</td>
+    <td>{{ m.Fecha }}</td>
+    <td>{{ m.Lugar }}</td>
+    <td>{{ m.vehiculo.Nombre_Vehiculo if m.vehiculo else '' }}</td>
+    <td>{{ m.usuario.Nombre if m.usuario else '' }}</td>
+    
+    <td class="acciones">
+      {% if session.role == 'admin' %}
+        <div class="acciones-contenedor">
+          <a class="btn-editar" href="{{ url_for('misiones_editar', id=m.ID_Mision) }}">Editar</a>
+
+          <form action="{{ url_for('misiones_eliminar', id=m.ID_Mision) }}" method="post">
+            <button class="btn-eliminar" type="submit" onclick="return confirm('Eliminar?')">Eliminar</button>
+          </form>
+        </div>
+      {% endif %}
+    </td>
+
+
+
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
