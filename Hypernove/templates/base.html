@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Hypernova{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --color-morado: #8A2BE2; --color-morado-hover: #7b24ca;
+            --color-negro-fondo: #0a0a0a; --color-negro-secundario: #1a1a1a;
+            --color-blanco: #ffffff; --color-gris-texto: #cccccc;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Roboto', sans-serif; background-color: var(--color-negro-fondo);
+            color: var(--color-blanco); min-height: 100vh; padding-top: 90px;
+        }
+        h1,h2,h3 { font-family: 'Orbitron', sans-serif; }
+
+        /* NAVBAR */
+        .navbar {
+            background-color: rgba(10, 10, 10, 0.95); border-bottom: 1px solid var(--color-morado);
+            padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
+            position: fixed; width: 100%; top: 0; z-index: 1000;
+        }
+        .navbar a { color: var(--color-blanco); text-decoration: none; font-weight: 700; font-family: 'Orbitron', sans-serif; }
+        .menu { display: flex; align-items: center; gap: 2rem; }
+
+        /* Dropdown */
+        .dropdown { position: relative; display: inline-block; }
+        .dropbtn { background: transparent; border: none; color: var(--color-blanco); cursor: pointer; font-family: 'Orbitron'; font-size: 1rem; }
+        .dropdown-content { display: none; position: absolute; background-color: var(--color-negro-secundario); border: 1px solid var(--color-morado); min-width: 180px; z-index: 999; border-radius: 8px; box-shadow: 0 0 15px rgba(138,43,226,0.3); }
+        .dropdown-content a { color: white; padding: 12px 16px; display: block; text-decoration: none; font-family: Roboto; }
+        .dropdown-content a:hover { background-color: var(--color-morado); }
+        .dropdown:hover .dropdown-content { display: block; }
+
+        .dashboard-card { background-color: var(--color-negro-secundario); padding: 3rem 5rem; border-radius: 15px; box-shadow: 0 0 25px rgba(138, 43, 226, 0.4); max-width: 900px; margin: auto; text-align: center; }
+
+        /* Formularios */
+        form input, form select { width: 100%; padding: 0.8rem; margin-bottom: 1rem; background: #111; border: 1px solid var(--color-morado); color: var(--color-blanco); border-radius: 6px; }
+        form button { background: var(--color-morado); padding: 0.8rem 1.5rem; border-radius: 6px; border: none; cursor: pointer; font-family: 'Orbitron'; transition: .3s; color: white; }
+        form button:hover { background: var(--color-morado-hover); }
+
+        /* Tablas */
+        table { width: 90%; margin: auto; border-collapse: collapse; background: var(--color-negro-secundario); border: 1px solid var(--color-morado); }
+        th, td { border: 1px solid var(--color-morado); padding: 10px; text-align: center; }
+        th { background: var(--color-morado); color: white; font-family: Orbitron; }
+
+        /* Botones especiales */
+        .btn-live { color: #00ffcc; border: 1px solid #00ffcc; border-radius: 5px; padding: 5px 10px; transition: 0.3s; background: transparent; }
+        .btn-live:hover { background: rgba(0, 255, 204, 0.1); box-shadow: 0 0 10px #00ffcc; }
+        
+        .user-profile { display: flex; align-items: center; gap: 5px; border-left: 1px solid #444; padding-left: 15px; font-size: 0.9rem; color: #aaa; }
+        .user-name { color: white; font-weight: bold; }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <a href="/">HYPERNOVA</a>
+
+        <div class="menu">
+            <!-- MANTENEMOS TU ESTRUCTURA, SOLO AGREGAMOS LÓGICA -->
+            
+            <!-- 1. SI ES ADMIN -->
+            {% if session.get("role") == "admin" %}
+                <div class="dropdown">
+                    <button class="dropbtn">Usuarios ⮟</button>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('usuarios_crear') }}">Crear Usuario</a>
+                        <a href="{{ url_for('usuarios_list') }}">Listar Usuarios</a>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <button class="dropbtn">Vehículos ⮟</button>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('vehiculos_crear') }}">Registrar Vehículo</a>
+                        <a href="{{ url_for('vehiculos_list') }}">Listar Vehículos</a>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <button class="dropbtn">Misiones ⮟</button>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('misiones_crear') }}">Crear Misión</a>
+                        <a href="{{ url_for('misiones_list') }}">Listar Misiones</a>
+                    </div>
+                </div>
+                <!-- Botón directo al catálogo -->
+                <a href="{{ url_for('catalogo_misiones') }}" style="text-decoration: none; margin-left: 10px;">
+                    <button class="dropbtn btn-live">📡 SALAS EN VIVO</button>
+                </a>
+
+            <!-- 2. SI ES INVITADO -->
+            {% elif session.get("role") == "invitado" %}
+                <a href="{{ url_for('invitado_dashboard') }}" style="text-decoration: none; margin-right: 15px;">Mi Perfil</a>
+                <a href="{{ url_for('catalogo_misiones') }}" style="text-decoration: none;">
+                    <button class="dropbtn btn-live">🚀 VER MISIONES</button>
+                </a>
+
+            <!-- 3. SI ES MANTENIMIENTO -->
+            {% elif session.get("role") == "mantenimiento" %}
+                <a href="{{ url_for('mantenimiento_dashboard') }}">Panel Técnico</a>
+            {% endif %}
+
+
+            <!-- 4. PERFIL Y LOGOUT (VISIBLE SIEMPRE QUE HAYA SESIÓN) -->
+            {% if session.get("user_id") %}
+                <div class="user-profile">
+                    <span>👤</span>
+                    <span class="user-name">{{ session.get('name', 'Usuario') }}</span>
+                </div>
+                <a href="{{ url_for('logout') }}" style="margin-left: 20px; color: #ff4444;">Cerrar sesión</a>
+            {% endif %}
+            
+            <!-- 5. SI NO HAY SESIÓN (LOGIN) -->
+            {% if not session.get("user_id") %}
+                <a href="{{ url_for('login') }}">Iniciar Sesión</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main style="padding: 3rem 2rem;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div style="text-align: center; padding: 10px; margin: 0 auto 20px auto; max-width: 600px; border-radius: 5px; 
+                   background: {{ '#28a745' if category == 'success' else '#dc3545' }}; color: white;">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}
+        {% endblock %}
+    </main>
+
+</body>
+</html>

@@ -1,0 +1,199 @@
+:root {
+    --color-morado: #8A2BE2; /* Un morado vibrante (BlueViolet) */
+    --color-morado-hover: #7b24ca;
+    --color-negro-fondo: #0a0a0a;
+    --color-negro-secundario: #1a1a1a;
+    --color-blanco: #ffffff;
+    --color-gris-texto: #cccccc;
+    }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--color-negro-fondo);
+            color: var(--color-blanco);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Orbitron', sans-serif; /* Fuente tecnológica para títulos */
+        }
+        
+        section {
+            padding: 6rem 0;
+        }
+
+        /* --- Barra de Navegación --- */
+        .navbar {
+            background-color: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--color-morado);
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            color: var(--color-blanco);
+            text-decoration: none;
+        }
+
+        .logo span {
+            color: var(--color-morado);
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--color-blanco);
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 700;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--color-morado);
+        }
+
+        /* --- Sección de Inicio (Hero) --- */
+        .hero {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: linear-gradient(rgba(10, 10, 10, 0.7), rgba(10, 10, 10, 0.9)), url('https://images.unsplash.com/photo-1541185934-01b600ea069c?q=80&w=2070&auto=format&fit=crop') no-repeat center center/cover;
+        }
+
+        .hero-content h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        .hero-content p {
+            font-size: 1.2rem;
+            color: var(--color-gris-texto);
+            margin-bottom: 2rem;
+        }
+
+        .cta-button {
+            background-color: var(--color-morado);
+            color: var(--color-blanco);
+            padding: 1rem 2rem;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            transition: background-color 0.3s ease;
+        }
+
+        .cta-button:hover {
+            background-color: var(--color-morado-hover);
+        }
+        
+        /* --- Estilos de Secciones --- */
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: var(--color-morado);
+        }
+
+        #quienes-somos p {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+            line-height: 1.7;
+            font-size: 1.1rem;
+            color: var(--color-gris-texto);
+        }
+        
+        /* --- Tarjetas de Vehículos --- */
+        #vehiculos {
+            background-color: var(--color-negro-secundario);
+        }
+        
+        .vehiculos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .vehiculo-card {
+            background-color: var(--color-negro-fondo);
+            border: 1px solid #333;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .vehiculo-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 25px rgba(138, 43, 226, 0.4);
+        }
+
+        .vehiculo-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+        }
+        
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        .card-content h3 {
+            margin-bottom: 0.5rem;
+            color: var(--color-morado);
+        }
+
+        .card-content p {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--color-gris-texto);
+        }
+
+        /* --- Footer --- */
+        .footer {
+            background-color: var(--color-negro-secundario);
+            padding: 3rem 0;
+            text-align: center;
+            border-top: 1px solid var(--color-morado);
+        }
+        
+        .footer p {
+            color: var(--color-gris-texto);
+        }
+
+
+

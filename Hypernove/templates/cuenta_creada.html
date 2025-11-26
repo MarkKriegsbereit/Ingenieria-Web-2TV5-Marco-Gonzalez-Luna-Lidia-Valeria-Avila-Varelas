@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cuenta creada</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/cuenta_creada.css') }}">
+</head>
+<body>
+
+    <!-- Modal -->
+    <div id="modalExito">
+        <div class="modal-box">
+            <h2>✔ Cuenta creada con éxito</h2>
+            <p>Tu cuenta ha sido registrada correctamente.<br><br>
+            ¡Bienvenido <strong>{{ usuario }}</strong>!</p>
+
+            <button id="btnAceptar">Aceptar</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/cuenta_creada.js') }}"></script>
+</body>
+</html>

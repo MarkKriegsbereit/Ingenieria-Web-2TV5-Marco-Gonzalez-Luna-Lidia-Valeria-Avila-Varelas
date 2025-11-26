@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🚀 Panel Hypernova</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: #f9f6ff;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: linear-gradient(90deg, #c59ff7, #ffb7e5);
+      color: white;
+      text-align: center;
+      padding: 20px;
+      font-size: 1.5em;
+      font-weight: bold;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    .container {
+      width: 90%;
+      max-width: 900px;
+      margin: 30px auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      padding: 25px;
+    }
+    h2 {
+      text-align: center;
+      color: #a06af7;
+      margin-bottom: 15px;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    input, select, button {
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      font-size: 1em;
+      transition: 0.2s;
+    }
+    input:focus, select:focus {
+      border-color: #a06af7;
+      outline: none;
+    }
+    button {
+      background: #a06af7;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #9055e8;
+    }
+    .tab-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .tab {
+      background: #eee;
+      border: none;
+      padding: 10px 20px;
+      margin: 0 5px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #555;
+    }
+    .tab.active {
+      background: #a06af7;
+      color: white;
+    }
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border-bottom: 1px solid #eee;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #f2e8ff;
+    }
+  </style>
+</head>
+<body>
+  <header>🚀 Hypernova Control Panel</header>
+
+  <div class="container">
+    <div class="tab-container">
+      <button class="tab active" onclick="mostrar('cohetes')">Cohetes</button>
+      <button class="tab" onclick="mostrar('mision')">Misiones</button>
+      <button class="tab" onclick="mostrar('historial')">Historial</button>
+    </div>
+
+    <!-- Registro de Cohetes -->
+    <section id="cohetes" class="section active">
+      <h2>Registrar Nuevo Cohete</h2>
+      <form id="formCohete">
+        <input type="text" name="nombre" placeholder="Nombre del cohete" required>
+        <input type="text" name="categoria" placeholder="Categoría (CanSat, NanoSat...)" required>
+        <select name="estado">
+          <option value="operativo">Operativo</option>
+          <option value="requiere revision">Requiere revisión</option>
+        </select>
+        <button type="submit">Guardar 🚀</button>
+      </form>
+    </section>
+
+    <!-- Crear Misión -->
+    <section id="mision" class="section">
+      <h2>Crear Nueva Misión</h2>
+      <form id="formMision">
+        <input type="text" name="nombre_mision" placeholder="Nombre de la misión" required>
+        <input type="text" name="lugar" placeholder="Lugar de lanzamiento" required>
+        <input type="date" name="fecha" required>
+        <select name="vehiculo_id" id="vehiculoSelect"></select>
+        <button type="submit">Crear Misión 🪄</button>
+      </form>
+    </section>
+
+    <!-- Historial -->
+    <section id="historial" class="section">
+      <h2>Historial de Misiones</h2>
+      <table id="tablaHistorial">
+        <thead>
+          <tr>
+            <th>Cohete</th>
+            <th>Misión</th>
+            <th>Lugar</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script>
+    const tabs = document.querySelectorAll('.tab');
+    const secciones = document.querySelectorAll('.section');
+
+    function mostrar(id) {
+      tabs.forEach(t => t.classList.remove('active'));
+      secciones.forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.querySelector(`[onclick="mostrar('${id}')"]`).classList.add('active');
+    }
+
+    // Registrar cohete
+    document.getElementById('formCohete').addEventListener('submit', async e => {
+      e.preventDefault();
+      const datos = Object.fromEntries(new FormData(e.target).entries());
+      const res = await fetch('/agregar_cohete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos)
+      });
+      if (res.ok) {
+        alert('Cohete agregado correctamente 💜');
+        e.target.reset();
+        cargarCohetes();
+      }
+    });
+
+    // Crear misión
+    document.getElementById('formMision').addEventListener('submit', async e => {
+      e.preventDefault();
+      const datos = Object.fromEntries(new FormData(e.target).entries());
+      const res = await fetch('/crear_mision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos)
+      });
+      if (res.ok) {
+        alert('Misión creada 🚀');
+        e.target.reset();
+        cargarHistorial();
+      }
+    });
+
+    // Cargar cohetes y misiones
+    async function cargarCohetes() {
+      const res = await fetch('/cohetes');
+      const cohetes = await res.json();
+      const select = document.getElementById('vehiculoSelect');
+      select.innerHTML = cohetes.map(v => `<option value="${v.ID_Vehiculo}">${v.Nombre_Vehiculo}</option>`).join('');
+    }
+
+    async function cargarHistorial() {
+      const res = await fetch('/historial');
+      const data = await res.json();
+      const tbody = document.querySelector('#tablaHistorial tbody');
+      tbody.innerHTML = data.map(d => `
+        <tr>
+          <td>${d.cohete}</td>
+          <td>${d.mision}</td>
+          <td>${d.lugar}</td>
+          <td>${d.fecha}</td>
+        </tr>
+      `).join('');
+    }
+
+    cargarCohetes();
+    cargarHistorial();
+  </script>
+</body>
+</html>

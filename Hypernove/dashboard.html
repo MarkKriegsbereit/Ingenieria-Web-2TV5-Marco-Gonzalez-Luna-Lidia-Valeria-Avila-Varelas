@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard de Telemetría - Hypernova</title>
+    <style>
+        /* Estilos para que se vea chido */
+        body { font-family: sans-serif; background-color: #f0f2f5; }
+        h1 { text-align: center; color: #333; }
+        .gauges-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+        .gauge {
+            width: 300px;
+            height: 300px;
+        }
+    </style>
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+</head>
+<body>
+
+    <h1>Telemetría en Tiempo Real (Simulado)</h1>
+
+    <div class="gauges-container">
+        <div id="gauge_altitud" class="gauge"></div>
+        <div id="gauge_temperatura" class="gauge"></div>
+        <div id="gauge_presion" class="gauge"></div>
+    </div>
+
+    <script src="app.js"></script>
+
+</body>
+</html>

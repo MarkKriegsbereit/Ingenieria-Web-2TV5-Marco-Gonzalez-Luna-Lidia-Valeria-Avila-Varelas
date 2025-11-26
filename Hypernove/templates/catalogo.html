@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Misiones Disponibles{% endblock %}
+
+{% block content %}
+<style>
+    .section-title { color: white; font-family: 'Orbitron'; border-bottom: 2px solid #333; padding-bottom: 10px; margin-top: 40px; }
+    .catalog-grid { display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; margin-top: 20px; }
+    
+    .mission-card {
+        background: rgba(20, 20, 20, 0.9); border: 1px solid #444; border-radius: 15px;
+        width: 280px; padding: 20px; text-align: center; position: relative;
+        transition: transform 0.3s, box-shadow 0.3s; overflow: hidden;
+    }
+    .mission-card:hover { transform: translateY(-10px); border-color: #8A2BE2; box-shadow: 0 0 25px rgba(138, 43, 226, 0.3); }
+    
+    /* Estilo LIVE */
+    .card-live { border: 2px solid #00ffcc; box-shadow: 0 0 20px rgba(0, 255, 204, 0.2); }
+    .badge-live {
+        position: absolute; top: 15px; right: 15px; background-color: #ff0000; color: white;
+        padding: 5px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold;
+        box-shadow: 0 0 10px red; animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+    h3 { color: white; margin: 15px 0 5px 0; font-family: 'Orbitron'; }
+    p { color: #888; font-size: 0.9rem; margin-bottom: 15px; }
+    
+    .btn-enter {
+        display: inline-block; width: 100%; padding: 12px 0;
+        background: transparent; border: 1px solid #8A2BE2; color: #8A2BE2;
+        border-radius: 5px; text-decoration: none; font-family: 'Orbitron'; transition: 0.3s;
+    }
+    .btn-enter:hover { background: #8A2BE2; color: white; }
+    .btn-live { background: #28a745; border-color: #28a745; color: white; font-weight: bold; }
+    .btn-live:hover { background: #218838; }
+</style>
+
+<div style="text-align: center; margin-top: 30px;">
+    <h2 style="color: white; font-family: 'Orbitron'; font-size: 2rem;">CENTRO DE OPERACIONES</h2>
+</div>
+
+{% if not misiones %}
+    <div style="text-align: center; margin-top: 50px; color: #666;">
+        <h3>NO HAY MISIONES ACTIVAS</h3>
+        <p>Espera a que el control de misión inicie una transmisión.</p>
+    </div>
+{% endif %}
+
+<!-- SECCIÓN EN VIVO -->
+{% set misiones_vivas = misiones | selectattr("en_vivo") | list %}
+{% if misiones_vivas %}
+    <h3 class="section-title" style="color: #00ffcc;">🔴 EN VIVO AHORA</h3>
+    <div class="catalog-grid">
+        {% for m in misiones_vivas %}
+        <div class="mission-card card-live">
+            <div class="badge-live">● LIVE</div>
+            <div style="font-size: 4rem; margin-top: 10px;">📡</div>
+            <h3>{{ m.nombre }}</h3>
+            <p>Host: {{ m.broadcaster }} | Puerto: {{ m.puerto }}</p>
+            <a href="{{ url_for('sala_mision', id_mision=m.id) }}" class="btn-enter btn-live">ENTRAR</a>
+        </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- SECCIÓN OFFLINE (SOLO ADMIN LO VERÁ PORQUE EL BACKEND YA FILTRÓ) -->
+{% set misiones_offline = misiones | rejectattr("en_vivo") | list %}
+{% if misiones_offline %}
+    <h3 class="section-title">PLANIFICADAS / OFFLINE</h3>
+    <div class="catalog-grid">
+        {% for m in misiones_offline %}
+        <div class="mission-card">
+            <div style="font-size: 3rem; margin-top: 10px; color: #555;">🚀</div>
+            <h3>{{ m.nombre }}</h3>
+            <p>{{ m.lugar }} | {{ m.fecha }}</p>
+            <a href="{{ url_for('sala_mision', id_mision=m.id) }}" class="btn-enter">
+                PREPARAR SALA
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% endblock %}
