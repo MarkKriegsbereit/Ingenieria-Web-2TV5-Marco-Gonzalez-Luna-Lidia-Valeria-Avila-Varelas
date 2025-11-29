@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
 from datetime import datetime, timedelta
 import urllib3
+import json
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -153,6 +154,38 @@ def leer_puerto_mision(puerto_com, mission_id):
         print(f"🛑 Stream Misión {mission_id} finalizado.")
         socketio.emit('status_msg', {'msg': 'Transmisión finalizada.'}, to=str_mid)
         socketio.emit('stream_ended', {'force_reset': True}, to=str_mid)
+
+
+
+def parse_data(trama_str):
+    """ Convierte el string CSV guardado en BD a un diccionario útil """
+    try:
+        # Formato esperado: temp,hum,pres,co2,vel,vang,acc,aang,alt,apo,lat,lon,ev1,ev2
+        d = trama_str.split(',')
+        if len(d) < 14: return None
+        
+        return {
+            "temperatura": float(d[0]),
+            "humedad": int(d[1]),
+            "presion": float(d[2]),
+            "co2": int(d[3]),
+            "velocidad": float(d[4]),
+            "aceleracion": float(d[6]),
+            "altitud": float(d[8]),
+            "apogeo": float(d[9]),
+            "latitud": float(d[10]),
+            "longitud": float(d[11])
+        }
+    except:
+        return None
+
+
+
+
+
+
+
+
 
 # ================== AUTH ==================
 oauth = OAuth(app)
@@ -314,6 +347,8 @@ def register():
 @login_required
 @admin_required
 def usuarios_list(): return render_template('usuarios_list.html', usuarios=Usuario.query.all())
+
+
 @app.route('/admin/usuarios/crear', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -323,6 +358,8 @@ def usuarios_crear():
         db.session.commit()
         return redirect(url_for('usuarios_list'))
     return render_template('usuario_form.html', accion='crear')
+
+
 @app.route('/admin/usuarios/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -334,6 +371,8 @@ def usuarios_editar(id):
         db.session.commit()
         return redirect(url_for('usuarios_list'))
     return render_template('usuario_form.html', accion='editar', usuario=u)
+
+
 @app.route('/admin/usuarios/eliminar/<int:id>', methods=['POST'])
 @login_required
 @admin_required
@@ -341,10 +380,14 @@ def usuarios_eliminar(id):
     db.session.delete(Usuario.query.get_or_404(id))
     db.session.commit()
     return redirect(url_for('usuarios_list'))
+
+
 @app.route('/admin/vehiculos')
 @login_required
 @admin_required
 def vehiculos_list(): return render_template('vehiculos_list.html', vehiculos=Vehiculo.query.all())
+
+
 @app.route('/admin/vehiculos/crear', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -354,6 +397,8 @@ def vehiculos_crear():
         db.session.commit()
         return redirect(url_for('vehiculos_list'))
     return render_template('vehiculo_form.html', accion='crear')
+
+
 @app.route('/admin/vehiculos/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -364,6 +409,8 @@ def vehiculos_editar(id):
         db.session.commit()
         return redirect(url_for('vehiculos_list'))
     return render_template('vehiculo_form.html', accion='editar', vehiculo=v)
+
+
 @app.route('/admin/vehiculos/eliminar/<int:id>', methods=['POST'])
 @login_required
 @admin_required
@@ -371,9 +418,13 @@ def vehiculos_eliminar(id):
     db.session.delete(Vehiculo.query.get_or_404(id))
     db.session.commit()
     return redirect(url_for('vehiculos_list'))
+
+
 @app.route('/admin/misiones')
 @login_required
 def misiones_list(): return render_template('misiones_list.html', misiones=Mision.query.all())
+
+
 @app.route('/admin/misiones/crear', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -386,6 +437,8 @@ def misiones_crear():
         db.session.commit()
         return redirect(url_for('misiones_list'))
     return render_template('mision_form.html', accion='crear', vehiculos=Vehiculo.query.all(), usuarios=Usuario.query.all())
+
+
 @app.route('/admin/misiones/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -397,6 +450,8 @@ def misiones_editar(id):
         db.session.commit()
         return redirect(url_for('misiones_list'))
     return render_template('mision_form.html', accion='editar', mision=m, vehiculos=Vehiculo.query.all(), usuarios=Usuario.query.all())
+
+
 @app.route('/admin/misiones/eliminar/<int:id>', methods=['POST'])
 @login_required
 @admin_required
@@ -404,6 +459,60 @@ def misiones_eliminar(id):
     db.session.delete(Mision.query.get_or_404(id))
     db.session.commit()
     return redirect(url_for('misiones_list'))
+
+
+
+@app.route('/reportes', methods=['GET', 'POST'])
+@login_required
+def ver_reporte():
+    # 1. Obtener todas las misiones para el selector
+    misiones = Mision.query.order_by(Mision.Fecha.desc()).all()
+    
+    datos_grafica = []
+    stats = {
+        'max_alt': 0, 'max_vel': 0, 'max_acc': 0, 
+        'flight_time': 0, 'apogeo_real': 0
+    }
+    mision_seleccionada = None
+
+    # 2. Si se selecciona una misión (POST) o viene por GET
+    mision_id = request.args.get('mision_id') or (request.form.get('mision_id') if request.method == 'POST' else None)
+    if mision_id:
+        mision_seleccionada = Mision.query.get(mision_id)
+        # Traer todas las tramas de esa misión
+        registros = Trama_CanSat.query.filter_by(FK_ID_Mision=mision_id).order_by(Trama_CanSat.Fecha_Hora).all()
+        
+        parsed_data = []
+        start_time = None
+        end_time = None
+
+        for r in registros:
+            val = parse_data(r.Trama)
+            if val:
+                # Agregar timestamp para el eje X
+                val['time'] = r.Fecha_Hora.strftime('%H:%M:%S')
+                parsed_data.append(val)
+                
+                # Cálculos estadísticos
+                if val['altitud'] > stats['max_alt']: stats['max_alt'] = val['altitud']
+                if val['velocidad'] > stats['max_vel']: stats['max_vel'] = val['velocidad']
+                if val['aceleracion'] > stats['max_acc']: stats['max_acc'] = val['aceleracion']
+                if val['apogeo'] > stats['apogeo_real']: stats['apogeo_real'] = val['apogeo']
+                
+                if not start_time: start_time = r.Fecha_Hora
+                end_time = r.Fecha_Hora
+
+        if start_time and end_time:
+            duration = end_time - start_time
+            stats['flight_time'] =str(duration).split('.')[0] # Formato H:M:S
+
+        datos_grafica = parsed_data
+
+    return render_template('reportes.html', 
+                           misiones=misiones, 
+                           datos=json.dumps(datos_grafica), # Enviamos como JSON string al JS
+                           stats=stats,
+                           mision_actual=mision_seleccionada)
 
 # SOCKETS
 @socketio.on('join')
