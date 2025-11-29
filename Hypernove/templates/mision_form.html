@@ -1,27 +1,59 @@
 {% extends "base.html" %}
+{% block title %}{{ 'Nueva' if accion == 'crear' else 'Editar' }} Misión{% endblock %}
+
 {% block content %}
-<h2>{{ 'Crear' if accion=='crear' else 'Editar' }} Misión</h2>
-<form method="post">
-  <label>Nombre</label>
-  <input name="nombre" value="{{ mision.Nombre_Mision if mision else '' }}" required>
-  <label>Fecha</label>
-  <input type="date" name="fecha" value="{{ mision.Fecha if mision and mision.Fecha else '' }}">
-  <label>Lugar</label>
-  <input name="lugar" value="{{ mision.Lugar if mision else '' }}">
-  <label>Vehículo</label>
-  <select name="vehiculo">
-    <option value="">(Ninguno)</option>
-    {% for v in vehiculos %}
-      <option value="{{ v.ID_Vehiculo }}" {% if mision and mision.FK_ID_Vehiculo==v.ID_Vehiculo %}selected{% endif %}>{{ v.Nombre_Vehiculo }}</option>
-    {% endfor %}
-  </select>
-  <label>Asignar usuario</label>
-  <select name="usuario">
-    <option value="">(Ninguno)</option>
-    {% for u in usuarios %}
-      <option value="{{ u.ID_Usuario }}" {% if mision and mision.FK_ID_Usuario==u.ID_Usuario %}selected{% endif %}>{{ u.Nombre }} ({{ u.Rol }})</option>
-    {% endfor %}
-  </select>
-  <button type="submit">Guardar</button>
-</form>
+<style>
+    .form-card { max-width: 600px; margin: 40px auto; background: #1a1a1a; padding: 30px; border-radius: 15px; border: 1px solid #ff0055; box-shadow: 0 0 30px rgba(255, 0, 85, 0.15); }
+    h2 { text-align: center; color: white; font-family: 'Orbitron'; margin-bottom: 30px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; color: #aaa; margin-bottom: 8px; font-size: 0.9rem; }
+    input, select { width: 100%; padding: 12px; background: #0a0a0a; border: 1px solid #444; color: white; border-radius: 5px; transition: 0.3s; }
+    input:focus, select:focus { border-color: #ff0055; outline: none; box-shadow: 0 0 10px rgba(255, 0, 85, 0.2); }
+    .btn-save { width: 100%; padding: 15px; background: linear-gradient(45deg, #ff0055, #ff00aa); color: white; border: none; border-radius: 5px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+    .btn-save:hover { filter: brightness(1.2); transform: scale(1.02); }
+    .btn-cancel { display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; }
+    .btn-cancel:hover { color: white; }
+</style>
+
+<div class="form-card">
+    <h2>{{ 'PLANIFICAR' if accion == 'crear' else 'EDITAR' }} MISIÓN</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label>Nombre de la Misión</label>
+            <input type="text" name="nombre" value="{{ mision.Nombre_Mision if mision else '' }}" required placeholder="Ej. Lanzamiento Alpha-1">
+        </div>
+        <div class="form-group">
+            <label>Fecha de Lanzamiento</label>
+            <input type="date" name="fecha" value="{{ mision.Fecha if mision else '' }}">
+        </div>
+        <div class="form-group">
+            <label>Lugar / Zona</label>
+            <input type="text" name="lugar" value="{{ mision.Lugar if mision else '' }}" placeholder="Ej. Desierto de Sonora">
+        </div>
+        <div class="form-group">
+            <label>Vehículo Asignado</label>
+            <select name="vehiculo">
+                <option value="">-- Seleccionar Vehículo --</option>
+                {% for v in vehiculos %}
+                    <option value="{{ v.ID_Vehiculo }}" {% if mision and mision.FK_ID_Vehiculo == v.ID_Vehiculo %}selected{% endif %}>
+                        {{ v.Nombre_Vehiculo }} ({{ v.Estado }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Responsable (Opcional)</label>
+            <select name="usuario">
+                <option value="">-- Seleccionar Usuario --</option>
+                {% for u in usuarios %}
+                    <option value="{{ u.ID_Usuario }}" {% if mision and mision.FK_ID_Usuario == u.ID_Usuario %}selected{% endif %}>
+                        {{ u.Nombre }} ({{ u.Rol }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn-save">GUARDAR MISIÓN</button>
+        <a href="{{ url_for('misiones_list') }}" class="btn-cancel">Cancelar</a>
+    </form>
+</div>
 {% endblock %}

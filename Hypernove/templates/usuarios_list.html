@@ -1,35 +1,55 @@
 {% extends "base.html" %}
+{% block title %}Gestión de Usuarios{% endblock %}
+
 {% block content %}
-<h2>Usuarios</h2>
-<a href="{{ url_for('usuarios_crear') }}">Crear usuario</a>
-<table>
-  <tr><th>ID</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Acciones</th></tr>
-  {% for u in usuarios %}
-  <tr>
-    <td>{{ u.ID_Usuario }}</td>
-    <td>{{ u.Nombre }}</td>
-    <td>{{ u.email }}</td>
-    <td>{{ u.Rol }}</td>
+<style>
+    .crud-container { max-width: 1000px; margin: 0 auto; }
+    .crud-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    h2 { font-family: 'Orbitron'; color: white; margin: 0; }
+    .btn-new { background: linear-gradient(45deg, #00ccff, #0066ff); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-family: 'Orbitron'; font-weight: bold; box-shadow: 0 0 15px rgba(0, 204, 255, 0.3); transition: 0.3s; }
+    .btn-new:hover { transform: scale(1.05); }
+    .data-table { width: 100%; border-collapse: collapse; background: #1a1a1a; border-radius: 10px; overflow: hidden; }
+    .data-table th { background: #111; color: #00ccff; padding: 15px; text-align: left; border-bottom: 2px solid #333; font-family: 'Orbitron'; }
+    .data-table td { padding: 15px; border-bottom: 1px solid #333; color: #ccc; }
+    .data-table tr:hover { background: rgba(0, 204, 255, 0.05); }
+    .actions { display: flex; gap: 10px; }
+    .btn-edit { color: #8A2BE2; text-decoration: none; border: 1px solid #8A2BE2; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; transition:0.3s; }
+    .btn-edit:hover { background: rgba(138, 43, 226, 0.1); }
+    .btn-del { background: transparent; color: #ff4444; border: 1px solid #ff4444; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; transition:0.3s; }
+    .btn-del:hover { background: rgba(255, 68, 68, 0.1); }
+</style>
 
-
-
-
-
-    <td class="acciones">
-      {% if session.role == 'admin' %}
-        <div class="acciones-contenedor">
-          <a class="btn-editar" href="{{ url_for('usuarios_editar', id=u.ID_Usuario) }}">Editar</a>
-
-          <form action="{{ url_for('usuarios_eliminar', id=u.ID_Usuario) }}" method="post">
-            <button class="btn-eliminar" type="submit" onclick="return confirm('Eliminar?')">Eliminar</button>
-          </form>
-        </div>
-      {% endif %}
-    </td>
-
-
-
-  </tr>
-  {% endfor %}
-</table>
+<div class="crud-container">
+    <div class="crud-header">
+        <h2>PERSONAL AUTORIZADO</h2>
+        <a href="{{ url_for('usuarios_crear') }}" class="btn-new">+ NUEVO USUARIO</a>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>NOMBRE</th>
+                <th>CORREO</th>
+                <th>ROL</th>
+                <th>ACCIONES</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in usuarios %}
+            <tr>
+                <td>#{{ u.ID_Usuario }}</td>
+                <td style="color: white; font-weight: bold;">{{ u.Nombre }}</td>
+                <td>{{ u.email }}</td>
+                <td style="text-transform: uppercase; color: #00ccff;">{{ u.Rol }}</td>
+                <td class="actions">
+                    <a href="{{ url_for('usuarios_editar', id=u.ID_Usuario) }}" class="btn-edit">EDITAR</a>
+                    <form method="POST" action="{{ url_for('usuarios_eliminar', id=u.ID_Usuario) }}" onsubmit="return confirm('¿Eliminar usuario?');">
+                        <button type="submit" class="btn-del">X</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

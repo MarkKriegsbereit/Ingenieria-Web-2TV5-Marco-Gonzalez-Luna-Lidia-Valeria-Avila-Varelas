@@ -1,38 +1,71 @@
 {% extends "base.html" %}
+{% block title %}Gestión de Vehículos{% endblock %}
+
 {% block content %}
-<h2>Vehículos</h2>
-<a href="{{ url_for('vehiculos_crear') }}">Registrar Vehículo</a>
-<table>
-  <tr><th>ID</th><th>Nombre</th><th>Categoria</th><th>Estado</th><th>Acciones</th></tr>
-  {% for v in vehiculos %}
-  <tr>
-    <td>{{ v.ID_Vehiculo }}</td>
-    <td>{{ v.Nombre_Vehiculo }}</td>
-    <td>{{ v.Categoria }}</td>
-    <td>{{ v.Estado }}</td>
+<style>
+    .crud-container { max-width: 1000px; margin: 0 auto; }
+    .crud-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    h2 { font-family: 'Orbitron'; color: white; margin: 0; }
+    
+    .btn-new {
+        background: linear-gradient(45deg, #00ffcc, #00997a); color: black; font-weight: bold;
+        padding: 10px 20px; text-decoration: none; border-radius: 5px; font-family: 'Orbitron';
+        box-shadow: 0 0 15px rgba(0, 255, 204, 0.3); transition: 0.3s;
+    }
+    .btn-new:hover { transform: scale(1.05); box-shadow: 0 0 25px rgba(0, 255, 204, 0.6); }
+    
+    .data-table { width: 100%; border-collapse: collapse; background: #1a1a1a; border-radius: 10px; overflow: hidden; }
+    .data-table th { background: #111; color: #8A2BE2; padding: 15px; text-align: left; border-bottom: 2px solid #333; font-family: 'Orbitron'; }
+    .data-table td { padding: 15px; border-bottom: 1px solid #333; color: #ccc; }
+    .data-table tr:hover { background: rgba(138, 43, 226, 0.05); }
+    
+    .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; }
+    .st-operativo { background: rgba(0, 255, 0, 0.1); color: #00ff00; border: 1px solid #00ff00; }
+    .st-revision { background: rgba(255, 165, 0, 0.1); color: orange; border: 1px solid orange; }
+    
+    .actions { display: flex; gap: 10px; }
+    .btn-edit { color: #00ccff; text-decoration: none; border: 1px solid #00ccff; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; transition:0.3s; }
+    .btn-edit:hover { background: rgba(0, 204, 255, 0.1); }
+    .btn-del { background: transparent; color: #ff4444; border: 1px solid #ff4444; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; transition:0.3s; }
+    .btn-del:hover { background: rgba(255, 68, 68, 0.1); }
+</style>
 
-
-
-
-
-
-    <td class="acciones">
-      {% if session.role == 'admin' %}
-        <div class="acciones-contenedor">
-          <a class="btn-editar" href="{{ url_for('vehiculos_editar', id=v.ID_Vehiculo) }}">Editar</a>
-
-          <form action="{{ url_for('vehiculos_eliminar', id=v.ID_Vehiculo) }}" method="post">
-            <button class="btn-eliminar" type="submit" onclick="return confirm('Eliminar?')">Eliminar</button>
-          </form>
-        </div>
-      {% endif %}
-    </td>
-
-
-
-
-
-  </tr>
-  {% endfor %}
-</table>
+<div class="crud-container">
+    <div class="crud-header">
+        <h2>FLOTA DE VEHÍCULOS</h2>
+        <a href="{{ url_for('vehiculos_crear') }}" class="btn-new">+ NUEVO VEHÍCULO</a>
+    </div>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>NOMBRE</th>
+                <th>CATEGORÍA</th>
+                <th>ESTADO</th>
+                <th>ACCIONES</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in vehiculos %}
+            <tr>
+                <td>#{{ v.ID_Vehiculo }}</td>
+                <td style="color: white; font-weight: bold;">{{ v.Nombre_Vehiculo }}</td>
+                <td>{{ v.Categoria }}</td>
+                <td>
+                    <span class="status-badge {{ 'st-operativo' if v.Estado == 'operativo' else 'st-revision' }}">
+                        {{ v.Estado }}
+                    </span>
+                </td>
+                <td class="actions">
+                    <a href="{{ url_for('vehiculos_editar', id=v.ID_Vehiculo) }}" class="btn-edit">EDITAR</a>
+                    <form method="POST" action="{{ url_for('vehiculos_eliminar', id=v.ID_Vehiculo) }}" onsubmit="return confirm('¿Eliminar vehículo?');">
+                        <button type="submit" class="btn-del">X</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

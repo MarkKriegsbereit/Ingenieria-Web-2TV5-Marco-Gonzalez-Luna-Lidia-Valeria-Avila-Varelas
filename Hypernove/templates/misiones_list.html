@@ -1,35 +1,58 @@
 {% extends "base.html" %}
+{% block title %}Gestión de Misiones{% endblock %}
+
 {% block content %}
-<h2>Misiones</h2>
-{% if session.role == 'admin' %}
-  <a href="{{ url_for('misiones_crear') }}">Crear misión</a>
-{% endif %}
-<table>
-  <tr><th>ID</th><th>Nombre</th><th>Fecha</th><th>Lugar</th><th>Vehículo</th><th>Usuario</th><th>Acciones</th></tr>
-  {% for m in misiones %}
-  <tr>
-    <td>{{ m.ID_Mision }}</td>
-    <td>{{ m.Nombre_Mision }}</td>
-    <td>{{ m.Fecha }}</td>
-    <td>{{ m.Lugar }}</td>
-    <td>{{ m.vehiculo.Nombre_Vehiculo if m.vehiculo else '' }}</td>
-    <td>{{ m.usuario.Nombre if m.usuario else '' }}</td>
+<style>
+    .crud-container { max-width: 1100px; margin: 0 auto; }
+    .crud-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    h2 { font-family: 'Orbitron'; color: white; margin: 0; }
+    .btn-new { background: linear-gradient(45deg, #ff0055, #ff00aa); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-family: 'Orbitron'; font-weight: bold; box-shadow: 0 0 15px rgba(255, 0, 85, 0.3); transition: 0.3s; }
+    .btn-new:hover { transform: scale(1.05); }
+    .data-table { width: 100%; border-collapse: collapse; background: #1a1a1a; border-radius: 10px; overflow: hidden; }
+    .data-table th { background: #111; color: #ff0055; padding: 15px; text-align: left; border-bottom: 2px solid #333; font-family: 'Orbitron'; }
+    .data-table td { padding: 15px; border-bottom: 1px solid #333; color: #ccc; }
+    .data-table tr:hover { background: rgba(255, 0, 85, 0.05); }
+    .actions { display: flex; gap: 10px; }
+    .btn-edit { color: #00ccff; text-decoration: none; border: 1px solid #00ccff; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; transition:0.3s; }
+    .btn-edit:hover { background: rgba(0, 204, 255, 0.1); }
+    .btn-del { background: transparent; color: #ff4444; border: 1px solid #ff4444; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; transition:0.3s; }
+    .btn-del:hover { background: rgba(255, 68, 68, 0.1); }
+</style>
+
+<div class="crud-container">
+    <div class="crud-header">
+        <h2>REGISTRO DE MISIONES</h2>
+        <a href="{{ url_for('misiones_crear') }}" class="btn-new">+ NUEVA MISIÓN</a>
+    </div>
     
-    <td class="acciones">
-      {% if session.role == 'admin' %}
-        <div class="acciones-contenedor">
-          <a class="btn-editar" href="{{ url_for('misiones_editar', id=m.ID_Mision) }}">Editar</a>
-
-          <form action="{{ url_for('misiones_eliminar', id=m.ID_Mision) }}" method="post">
-            <button class="btn-eliminar" type="submit" onclick="return confirm('Eliminar?')">Eliminar</button>
-          </form>
-        </div>
-      {% endif %}
-    </td>
-
-
-
-  </tr>
-  {% endfor %}
-</table>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>NOMBRE</th>
+                <th>FECHA</th>
+                <th>LUGAR</th>
+                <th>VEHÍCULO</th>
+                <th>ACCIONES</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in misiones %}
+            <tr>
+                <td>#{{ m.ID_Mision }}</td>
+                <td style="color: white; font-weight: bold;">{{ m.Nombre_Mision }}</td>
+                <td>{{ m.Fecha }}</td>
+                <td>{{ m.Lugar }}</td>
+                <td style="color: #00ffcc;">{{ m.vehiculo.Nombre_Vehiculo if m.vehiculo else '---' }}</td>
+                <td class="actions">
+                    <a href="{{ url_for('misiones_editar', id=m.ID_Mision) }}" class="btn-edit">EDITAR</a>
+                    <form method="POST" action="{{ url_for('misiones_eliminar', id=m.ID_Mision) }}" onsubmit="return confirm('¿Eliminar misión?');">
+                        <button type="submit" class="btn-del">X</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

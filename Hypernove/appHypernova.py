@@ -2,7 +2,6 @@ import eventlet
 eventlet.monkey_patch()
 
 import requests
-import traceback
 from flask import Flask, render_template, request, redirect, url_for, jsonify, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
@@ -20,7 +19,6 @@ import urllib3
 import json
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 load_dotenv()
 
 app = Flask(__name__)
@@ -91,6 +89,28 @@ class SesionModel(db.Model):
     Fecha_Hora_Inicio = db.Column(db.DateTime, nullable=False)
     Fecha_Hora_Fin = db.Column(db.DateTime, nullable=True)
     FK_ID_Usuario = db.Column(db.Integer, db.ForeignKey('Usuarios.ID_Usuario'))
+
+class ReporteMantenimiento(db.Model):
+    __tablename__ = 'Reporte_Mantenimiento'
+    ID_Reporte = db.Column(db.Integer, primary_key=True)
+    Comentarios = db.Column(db.Text, nullable=False)
+    Fecha_Hora_Reporte = db.Column(db.DateTime, default=datetime.now)
+    FK_ID_Vehiculo = db.Column(db.Integer, db.ForeignKey('Vehiculo_CanSat.ID_Vehiculo'))
+    FK_ID_Usuario = db.Column(db.Integer, db.ForeignKey('Usuarios.ID_Usuario'))
+    # Relaciones para mostrar nombres en lugar de IDs
+    vehiculo = db.relationship('Vehiculo', backref='reportes')
+    usuario = db.relationship('Usuario', backref='reportes')
+
+class BitacoraDB(db.Model):
+    __tablename__ = 'Bitacora_DB'
+    ID_Log = db.Column(db.Integer, primary_key=True)
+    Tabla_Afectada = db.Column(db.String(50))
+    Accion = db.Column(db.String(20))
+    Detalle = db.Column(db.Text)
+    Fecha = db.Column(db.DateTime, default=datetime.now)
+    Usuario_Responsable = db.Column(db.String(100))
+
+
 
 # ================== LÓGICA STREAM BLINDADA ==================
 def leer_puerto_mision(puerto_com, mission_id):
@@ -180,6 +200,30 @@ def parse_data(trama_str):
         return None
 
 
+# ================== DECORADORES ==================
+def login_required(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if 'user_id' not in session: return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return wrapped
+
+def admin_required(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if session.get('role') != 'admin': return redirect(url_for('home'))
+        return f(*args, **kwargs)
+    return wrapped
+
+# NUEVO: Permite acceso a Admin Y Mantenimiento
+def staff_required(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if session.get('role') not in ['admin', 'mantenimiento']:
+            flash("Acceso denegado.", "error")
+            return redirect(url_for('home'))
+        return f(*args, **kwargs)
+    return wrapped
 
 
 
@@ -211,7 +255,12 @@ def home(): return render_template("index.html")
 
 @app.route('/login', methods=['GET','POST'])
 def login():
-    if 'user_id' in session: return redirect(url_for('catalogo_misiones'))
+    if 'user_id' in session:
+        role = session.get('role')
+        if role == 'admin': return redirect(url_for('admin_dashboard'))
+        if role == 'mantenimiento': return redirect(url_for('mantenimiento_dashboard'))
+        return redirect(url_for('catalogo_misiones'))
+
     if request.method == 'POST':
         email = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
@@ -223,10 +272,14 @@ def login():
             session['email'] = user.email
             session['name'] = user.Nombre
             session.permanent = True
+            
             ns = SesionModel(Fecha_Hora_Inicio=datetime.now(), FK_ID_Usuario=user.ID_Usuario)
             db.session.add(ns)
             db.session.commit()
             session['id_bitacora'] = ns.ID_Sesion
+            
+            if user.Rol == 'admin': return redirect(url_for('admin_dashboard'))
+            if user.Rol == 'mantenimiento': return redirect(url_for('mantenimiento_dashboard'))
             return redirect(url_for('catalogo_misiones'))
         else:
             return render_template('login.html', mensaje="Datos incorrectos")
@@ -290,6 +343,7 @@ def google_callback():
         flash("Error Google. Usa Local.", "error")
         return redirect(url_for('login'))
 
+
 # RUTAS SISTEMA
 @app.route('/catalogo')
 @login_required
@@ -297,12 +351,20 @@ def catalogo_misiones():
     misiones = Mision.query.all()
     lista = []
     rol_actual = session.get('role')
+    
     for m in misiones:
         en_vivo = str(m.ID_Mision) in active_streams
-        if rol_actual != 'admin' and not en_vivo: continue
+        
+        # CORRECCIÓN SOLICITADA: 
+        # Si NO es admin Y la misión NO está en vivo -> Ocultar.
+        # (Mantenimiento ahora cae en esta restricción y solo verá lo que está On Air)
+        if rol_actual != 'admin' and not en_vivo: 
+            continue
+        
         puerto = active_streams[str(m.ID_Mision)]['port'] if en_vivo else None
         broadcaster = active_streams[str(m.ID_Mision)].get('admin_name', 'Admin') if en_vivo else None
         lista.append({'id': m.ID_Mision, 'nombre': m.Nombre_Mision, 'fecha': m.Fecha, 'lugar': m.Lugar, 'en_vivo': en_vivo, 'puerto': puerto, 'broadcaster': broadcaster})
+        
     return render_template('catalogo.html', misiones=lista)
 
 @app.route('/sala/<int:id_mision>')
@@ -345,13 +407,14 @@ def register():
 # CRUD
 @app.route('/admin/usuarios')
 @login_required
-@admin_required
-def usuarios_list(): return render_template('usuarios_list.html', usuarios=Usuario.query.all())
+@staff_required # <-- CAMBIO
+def usuarios_list():
+    return render_template('usuarios_list.html', usuarios=Usuario.query.all())
 
 
 @app.route('/admin/usuarios/crear', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@staff_required
 def usuarios_crear():
     if request.method == 'POST':
         db.session.add(Usuario(Nombre=request.form['nombre'], email=request.form['email'], Password=generate_password_hash(request.form['password']), Rol=request.form['rol']))
@@ -362,7 +425,7 @@ def usuarios_crear():
 
 @app.route('/admin/usuarios/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@staff_required
 def usuarios_editar(id):
     u = Usuario.query.get_or_404(id)
     if request.method == 'POST':
@@ -375,7 +438,7 @@ def usuarios_editar(id):
 
 @app.route('/admin/usuarios/eliminar/<int:id>', methods=['POST'])
 @login_required
-@admin_required
+@staff_required
 def usuarios_eliminar(id):
     db.session.delete(Usuario.query.get_or_404(id))
     db.session.commit()
@@ -384,13 +447,13 @@ def usuarios_eliminar(id):
 
 @app.route('/admin/vehiculos')
 @login_required
-@admin_required
+@staff_required
 def vehiculos_list(): return render_template('vehiculos_list.html', vehiculos=Vehiculo.query.all())
 
 
 @app.route('/admin/vehiculos/crear', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@staff_required
 def vehiculos_crear():
     if request.method == 'POST':
         db.session.add(Vehiculo(Nombre_Vehiculo=request.form['nombre'], Categoria=request.form['categoria'], Estado=request.form['estado']))
@@ -401,7 +464,7 @@ def vehiculos_crear():
 
 @app.route('/admin/vehiculos/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@staff_required
 def vehiculos_editar(id):
     v = Vehiculo.query.get_or_404(id)
     if request.method == 'POST':
@@ -413,21 +476,25 @@ def vehiculos_editar(id):
 
 @app.route('/admin/vehiculos/eliminar/<int:id>', methods=['POST'])
 @login_required
-@admin_required
+@staff_required
 def vehiculos_eliminar(id):
     db.session.delete(Vehiculo.query.get_or_404(id))
     db.session.commit()
     return redirect(url_for('vehiculos_list'))
 
+# =========================================================
+#  CRUD MISIONES (Modificado para acceso de Mantenimiento)
+# =========================================================
 
 @app.route('/admin/misiones')
 @login_required
-def misiones_list(): return render_template('misiones_list.html', misiones=Mision.query.all())
-
+@staff_required  # Permite Admin y Mantenimiento
+def misiones_list(): 
+    return render_template('misiones_list.html', misiones=Mision.query.all())
 
 @app.route('/admin/misiones/crear', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@staff_required
 def misiones_crear():
     if request.method == 'POST':
         m = Mision(Nombre_Mision=request.form['nombre'], Fecha=request.form['fecha'] or None, Lugar=request.form['lugar'])
@@ -436,12 +503,17 @@ def misiones_crear():
         db.session.add(m)
         db.session.commit()
         return redirect(url_for('misiones_list'))
-    return render_template('mision_form.html', accion='crear', vehiculos=Vehiculo.query.all(), usuarios=Usuario.query.all())
-
+    
+    vehiculos = Vehiculo.query.all()
+    
+    # CORRECCIÓN: Filtrar solo usuarios con Rol 'admin'
+    usuarios = Usuario.query.filter_by(Rol='admin').all()
+    
+    return render_template('mision_form.html', accion='crear', vehiculos=vehiculos, usuarios=usuarios)
 
 @app.route('/admin/misiones/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@staff_required
 def misiones_editar(id):
     m = Mision.query.get_or_404(id)
     if request.method == 'POST':
@@ -449,17 +521,21 @@ def misiones_editar(id):
         m.FK_ID_Vehiculo, m.FK_ID_Usuario = request.form.get('vehiculo'), request.form.get('usuario')
         db.session.commit()
         return redirect(url_for('misiones_list'))
-    return render_template('mision_form.html', accion='editar', mision=m, vehiculos=Vehiculo.query.all(), usuarios=Usuario.query.all())
-
+    
+    vehiculos = Vehiculo.query.all()
+    
+    # CORRECCIÓN: Filtrar solo usuarios con Rol 'admin'
+    usuarios = Usuario.query.filter_by(Rol='admin').all()
+    
+    return render_template('mision_form.html', accion='editar', mision=m, vehiculos=vehiculos, usuarios=usuarios)
 
 @app.route('/admin/misiones/eliminar/<int:id>', methods=['POST'])
 @login_required
-@admin_required
+@staff_required
 def misiones_eliminar(id):
     db.session.delete(Mision.query.get_or_404(id))
     db.session.commit()
     return redirect(url_for('misiones_list'))
-
 
 
 @app.route('/reportes', methods=['GET', 'POST'])
@@ -513,6 +589,63 @@ def ver_reporte():
                            datos=json.dumps(datos_grafica), # Enviamos como JSON string al JS
                            stats=stats,
                            mision_actual=mision_seleccionada)
+
+
+# ================== MÓDULO DE MANTENIMIENTO ==================
+
+@app.route('/mantenimiento')
+@login_required
+@staff_required
+def mantenimiento_dashboard():
+    # Obtener los últimos reportes y logs para el dashboard
+    reportes = ReporteMantenimiento.query.order_by(ReporteMantenimiento.Fecha_Hora_Reporte.desc()).limit(5).all()
+    logs = BitacoraDB.query.order_by(BitacoraDB.Fecha.desc()).limit(10).all()
+    return render_template("mantenimiento.html", reportes=reportes, logs=logs)
+
+@app.route('/mantenimiento/logs')
+@login_required
+@staff_required
+def logs_db():
+    logs = BitacoraDB.query.order_by(BitacoraDB.Fecha.desc()).limit(100).all()
+    return render_template("logs_db.html", logs=logs)
+
+@app.route('/mantenimiento/reportes/crear', methods=['GET', 'POST'])
+@login_required
+@staff_required
+def reportes_crear():
+    if request.method == 'POST':
+        vehiculo_id = request.form.get('vehiculo')
+        comentario = request.form.get('comentarios')
+        
+        nuevo_reporte = ReporteMantenimiento(
+            Comentarios=comentario,
+            FK_ID_Vehiculo=vehiculo_id,
+            FK_ID_Usuario=session.get('user_id')
+        )
+        
+        # Actualizar estado del vehículo si lo cambiaron en el form
+        estado_nuevo = request.form.get('estado_vehiculo')
+        if estado_nuevo:
+            v = Vehiculo.query.get(vehiculo_id)
+            v.Estado = estado_nuevo
+        
+        db.session.add(nuevo_reporte)
+        db.session.commit()
+        flash("Reporte registrado", "success")
+        return redirect(url_for('mantenimiento_dashboard'))
+        
+    vehiculos = Vehiculo.query.all()
+    return render_template("reportes_crear.html", vehiculos=vehiculos)
+
+
+@app.route('/mantenimiento/reportes')
+@login_required
+@staff_required
+def reportes_lista():
+    # Traemos todos los reportes ordenados por fecha
+    reportes = ReporteMantenimiento.query.order_by(ReporteMantenimiento.Fecha_Hora_Reporte.desc()).all()
+    return render_template("reportes_lista.html", reportes=reportes)
+
 
 # SOCKETS
 @socketio.on('join')

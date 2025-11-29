@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Nuevo Reporte{% endblock %}
+
+{% block content %}
+<style>
+    .form-container { max-width: 600px; margin: 40px auto; background: #1a1a1a; padding: 30px; border-radius: 15px; border: 1px solid #333; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+    h2 { color: white; font-family: 'Orbitron'; text-align: center; margin-bottom: 30px; color: #8A2BE2; }
+    
+    .form-group { margin-bottom: 20px; }
+    label { display: block; color: #ccc; margin-bottom: 8px; font-size: 0.9rem; }
+    
+    select, textarea {
+        width: 100%; padding: 12px; background: #0a0a0a; border: 1px solid #444;
+        color: white; border-radius: 5px; font-family: 'Roboto'; font-size: 1rem;
+    }
+    select:focus, textarea:focus { outline: none; border-color: #8A2BE2; }
+    
+    .btn-submit {
+        width: 100%; padding: 15px; background: linear-gradient(45deg, #8A2BE2, #4B0082);
+        color: white; border: none; border-radius: 5px; font-family: 'Orbitron'; font-weight: bold;
+        font-size: 1rem; cursor: pointer; transition: 0.3s; margin-top: 10px;
+    }
+    .btn-submit:hover { filter: brightness(1.2); box-shadow: 0 0 15px rgba(138, 43, 226, 0.4); }
+    
+    .cancel-link { display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; font-size: 0.9rem; }
+    .cancel-link:hover { color: white; }
+</style>
+
+<div class="form-container">
+    <h2>NUEVA INCIDENCIA</h2>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label>Vehículo / Dispositivo</label>
+            <select name="vehiculo" required>
+                <option value="" disabled selected>Seleccionar...</option>
+                {% for v in vehiculos %}
+                    <option value="{{ v.ID_Vehiculo }}">{{ v.Nombre_Vehiculo }} (Actual: {{ v.Estado }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Actualizar Estado (Opcional)</label>
+            <select name="estado_vehiculo">
+                <option value="" selected>-- Mantener estado actual --</option>
+                <option value="operativo">🟢 Operativo</option>
+                <option value="requiere revision">🟠 Requiere Revisión</option>
+                <option value="mantenimiento">🔴 En Mantenimiento</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Descripción del Trabajo / Falla</label>
+            <textarea name="comentarios" rows="6" placeholder="Describe detalladamente el mantenimiento realizado o la falla detectada..." required></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit">REGISTRAR REPORTE</button>
+        <a href="{{ url_for('mantenimiento_dashboard') }}" class="cancel-link">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

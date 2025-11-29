@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Hypernova{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="[https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap](https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap)" rel="stylesheet">
 
     <style>
         :root {
@@ -41,7 +41,6 @@
         .success { background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; color: #28a745; }
         .error { background: rgba(220, 53, 69, 0.2); border: 1px solid #dc3545; color: #dc3545; }
         
-        /* Estilos generales de tablas y forms */
         form input, form select { width: 100%; padding: 0.8rem; margin-bottom: 1rem; background: #111; border: 1px solid var(--color-morado); color: var(--color-blanco); border-radius: 6px; }
         form button { background: var(--color-morado); padding: 0.8rem 1.5rem; border-radius: 6px; border: none; cursor: pointer; font-family: 'Orbitron'; transition: .3s; color: white; }
         form button:hover { background: var(--color-morado-hover); }
@@ -58,6 +57,8 @@
         </a>
 
         <div class="menu">
+            
+            <!-- 1. MENÚ DE ADMIN -->
             {% if session.get("role") == "admin" %}
                 <div class="dropdown">
                     <button class="dropbtn">Usuarios ⮟</button>
@@ -78,17 +79,24 @@
                     <div class="dropdown-content">
                         <a href="{{ url_for('misiones_crear') }}">Crear Misión</a>
                         <a href="{{ url_for('misiones_list') }}">Listar Misiones</a>
-                        <!-- ENLACE DE REPORTES AGREGADO AQUÍ -->
                         <a href="{{ url_for('ver_reporte') }}" style="color: #00ffcc; border-top: 1px solid #333;">📊 Reportes</a>
                     </div>
                 </div>
                 <a href="{{ url_for('catalogo_misiones') }}" class="btn-live">📡 SALAS EN VIVO</a>
 
+            <!-- 2. MENÚ DE INVITADO -->
             {% elif session.get("role") == "invitado" %}
                 <a href="{{ url_for('invitado_dashboard') }}" style="text-decoration: none; margin-right: 15px; color: #ccc;">Mi Perfil</a>
                 <a href="{{ url_for('catalogo_misiones') }}" class="btn-live">🚀 VER MISIONES</a>
+
+            <!-- 3. MENÚ DE MANTENIMIENTO (ACTUALIZADO) -->
+            {% elif session.get("role") == "mantenimiento" %}
+                <a href="{{ url_for('mantenimiento_dashboard') }}" style="text-decoration: none; margin-right: 15px; color: #ccc;">Panel Técnico</a>
+                <!-- AGREGADO: Botón para ir al catálogo también -->
+                <a href="{{ url_for('catalogo_misiones') }}" class="btn-live">📡 VER MISIONES</a>
             {% endif %}
 
+            <!-- PERFIL Y LOGOUT -->
             {% if session.get("user_id") %}
                 <div class="user-profile">
                     <span>👤</span>

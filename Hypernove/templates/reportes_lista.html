@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Historial de Mantenimiento{% endblock %}
+
+{% block content %}
+<style>
+    .report-list-container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+    
+    .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    h2 { color: white; font-family: 'Orbitron'; margin: 0; }
+    
+    .btn-new {
+        background: #8A2BE2; color: white; text-decoration: none; padding: 10px 20px;
+        border-radius: 5px; font-family: 'Orbitron'; font-size: 0.9rem; transition: 0.3s;
+        box-shadow: 0 0 15px rgba(138, 43, 226, 0.3);
+    }
+    .btn-new:hover { background: #7b24ca; transform: translateY(-2px); }
+
+    .report-card {
+        background: #1a1a1a; border: 1px solid #333; border-left: 5px solid #8A2BE2;
+        padding: 20px; margin-bottom: 20px; border-radius: 8px; transition: 0.3s;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .report-card:hover { background: #222; border-color: #555; border-left-color: #00ffcc; }
+    
+    .rep-info h3 { color: white; margin: 0 0 5px 0; font-size: 1.1rem; }
+    .rep-meta { color: #666; font-size: 0.85rem; margin-bottom: 10px; font-family: monospace; }
+    .rep-desc { color: #ccc; font-size: 0.95rem; line-height: 1.4; }
+    
+    .status-tag { 
+        background: #111; border: 1px solid #444; color: #aaa; 
+        padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; 
+    }
+</style>
+
+<div class="report-list-container">
+    <div class="header-actions">
+        <h2>BITÁCORA DE MANTENIMIENTO</h2>
+        <a href="{{ url_for('reportes_crear') }}" class="btn-new">+ NUEVO REPORTE</a>
+    </div>
+
+    {% if not reportes %}
+        <div style="text-align:center; color:#666; margin-top:50px;">
+            <h3>No hay reportes registrados.</h3>
+        </div>
+    {% else %}
+        {% for r in reportes %}
+        <div class="report-card">
+            <div class="rep-info">
+                <div class="rep-meta">
+                    {{ r.Fecha_Hora_Reporte.strftime('%Y-%m-%d %H:%M') }} | TÉCNICO: {{ r.usuario.Nombre }}
+                </div>
+                <h3>{{ r.vehiculo.Nombre_Vehiculo }}</h3>
+                <div class="rep-desc">{{ r.Comentarios }}</div>
+            </div>
+            <div>
+                <span class="status-tag">{{ r.vehiculo.Estado }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+    
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{{ url_for('mantenimiento_dashboard') }}" style="color: #8A2BE2; text-decoration: none; font-family: 'Orbitron';">← Volver al Panel</a>
+    </div>
+</div>
+{% endblock %}

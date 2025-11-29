@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Auditoría del Sistema{% endblock %}
+
+{% block content %}
+<style>
+    .logs-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    
+    .terminal-box {
+        background: #0a0a0a; border: 1px solid #333; border-radius: 10px;
+        overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    }
+    
+    .terminal-header {
+        background: #1a1a1a; padding: 15px 20px; border-bottom: 1px solid #333;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .terminal-title { color: #ff9900; font-family: 'Orbitron'; margin: 0; }
+
+    .log-table { width: 100%; border-collapse: collapse; font-family: 'Roboto Mono', monospace; font-size: 0.9rem; }
+    .log-table th { text-align: left; padding: 15px; background: #111; color: #888; border-bottom: 1px solid #333; }
+    .log-table td { padding: 12px 15px; border-bottom: 1px solid #222; color: #ccc; }
+    .log-table tr:hover { background: rgba(255, 255, 255, 0.03); }
+    
+    /* Colores de Acción */
+    .badge-action { padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; }
+    .act-insert { background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
+    .act-update { background: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid #ffc107; }
+    .act-delete { background: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545; }
+    
+    .back-link { display: inline-block; margin-top: 20px; color: #8A2BE2; text-decoration: none; font-family: 'Orbitron'; transition: 0.3s;}
+    .back-link:hover { color: white; transform: translateX(-5px); }
+</style>
+
+<div class="logs-container">
+    <div class="terminal-box">
+        <div class="terminal-header">
+            <h2 class="terminal-title">⚠️ REGISTRO DE AUDITORÍA (LOGS)</h2>
+            <span style="color:#555; font-size:0.8rem;">Solo lectura</span>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>TIMESTAMP</th>
+                        <th>ACCIÓN</th>
+                        <th>TABLA</th>
+                        <th>DETALLE DEL CAMBIO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td style="color: #666;">#{{ log.ID_Log }}</td>
+                        <td>{{ log.Fecha }}</td>
+                        <td>
+                            <span class="badge-action act-{{ log.Accion|lower }}">{{ log.Accion }}</span>
+                        </td>
+                        <td style="color: #00ffcc;">{{ log.Tabla_Afectada }}</td>
+                        <td>{{ log.Detalle }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <a href="{{ url_for('mantenimiento_dashboard') }}" class="back-link">← Volver al Panel Técnico</a>
+</div>
+{% endblock %}

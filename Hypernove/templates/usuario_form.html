@@ -1,19 +1,45 @@
 {% extends "base.html" %}
+{% block title %}{{ 'Nuevo' if accion == 'crear' else 'Editar' }} Usuario{% endblock %}
+
 {% block content %}
-<h2>{{ 'Crear' if accion=='crear' else 'Editar' }} Usuario</h2>
-<form method="post">
-  <label>Nombre</label>
-  <input name="nombre" value="{{ usuario.Nombre if usuario else '' }}" required>
-  <label>Email</label>
-  <input name="email" value="{{ usuario.email if usuario else '' }}" required>
-  <label>Rol</label>
-  <select name="rol">
-    <option value="admin" {% if usuario and usuario.Rol=='admin' %}selected{% endif %}>admin</option>
-    <option value="invitado" {% if usuario and usuario.Rol=='invitado' %}selected{% endif %}>invitado</option>
-    <option value="mantenimiento" {% if usuario and usuario.Rol=='mantenimiento' %}selected{% endif %}>mantenimiento</option>
-  </select>
-  <label>Contraseña {% if accion=='editar' %}(dejar vacío para mantener){% endif %}</label>
-  <input type="password" name="password">
-  <button type="submit">Guardar</button>
-</form>
+<style>
+    .form-card { max-width: 500px; margin: 40px auto; background: #1a1a1a; padding: 30px; border-radius: 15px; border: 1px solid #00ccff; box-shadow: 0 0 30px rgba(0, 204, 255, 0.15); }
+    h2 { text-align: center; color: white; font-family: 'Orbitron'; margin-bottom: 30px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; color: #aaa; margin-bottom: 8px; font-size: 0.9rem; }
+    input, select { width: 100%; padding: 12px; background: #0a0a0a; border: 1px solid #444; color: white; border-radius: 5px; transition: 0.3s; }
+    input:focus, select:focus { border-color: #00ccff; outline: none; box-shadow: 0 0 10px rgba(0, 204, 255, 0.2); }
+    .btn-save { width: 100%; padding: 15px; background: linear-gradient(45deg, #00ccff, #0066ff); color: white; border: none; border-radius: 5px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+    .btn-save:hover { filter: brightness(1.2); transform: scale(1.02); }
+    .btn-cancel { display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; }
+    .btn-cancel:hover { color: white; }
+</style>
+
+<div class="form-card">
+    <h2>{{ 'REGISTRAR' if accion == 'crear' else 'EDITAR' }} USUARIO</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label>Nombre Completo</label>
+            <input type="text" name="nombre" value="{{ usuario.Nombre if usuario else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Correo Electrónico</label>
+            <input type="email" name="email" value="{{ usuario.email if usuario else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Rol de Sistema</label>
+            <select name="rol">
+                <option value="invitado" {% if usuario and usuario.Rol == 'invitado' %}selected{% endif %}>Invitado</option>
+                <option value="mantenimiento" {% if usuario and usuario.Rol == 'mantenimiento' %}selected{% endif %}>Mantenimiento</option>
+                <option value="admin" {% if usuario and usuario.Rol == 'admin' %}selected{% endif %}>Administrador</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Contraseña <small style="color:#666;">(Dejar vacío si no se cambia)</small></label>
+            <input type="password" name="password" {% if accion == 'crear' %}required{% endif %}>
+        </div>
+        <button type="submit" class="btn-save">GUARDAR USUARIO</button>
+        <a href="{{ url_for('usuarios_list') }}" class="btn-cancel">Cancelar</a>
+    </form>
+</div>
 {% endblock %}

@@ -1,16 +1,40 @@
 {% extends "base.html" %}
+{% block title %}{{ 'Nuevo' if accion == 'crear' else 'Editar' }} Vehículo{% endblock %}
+
 {% block content %}
-<h2>{{ 'Registrar' if accion=='crear' else 'Editar' }} Vehículo</h2>
-<form method="post">
-  <label>Nombre</label>
-  <input name="nombre" value="{{ vehiculo.Nombre_Vehiculo if vehiculo else '' }}" required>
-  <label>Categoria</label>
-  <input name="categoria" value="{{ vehiculo.Categoria if vehiculo else '' }}" required>
-  <label>Estado</label>
-  <select name="estado">
-    <option value="operativo" {% if vehiculo and vehiculo.Estado=='operativo' %}selected{% endif %}>operativo</option>
-    <option value="requiere revision" {% if vehiculo and vehiculo.Estado=='requiere revision' %}selected{% endif %}>requiere revision</option>
-  </select>
-  <button type="submit">Guardar</button>
-</form>
+<style>
+    .form-card { max-width: 500px; margin: 40px auto; background: #1a1a1a; padding: 30px; border-radius: 15px; border: 1px solid #8A2BE2; box-shadow: 0 0 30px rgba(138, 43, 226, 0.2); }
+    h2 { text-align: center; color: white; font-family: 'Orbitron'; margin-bottom: 30px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; color: #aaa; margin-bottom: 8px; font-size: 0.9rem; }
+    input, select { width: 100%; padding: 12px; background: #0a0a0a; border: 1px solid #444; color: white; border-radius: 5px; transition: 0.3s; }
+    input:focus, select:focus { border-color: #00ffcc; outline: none; box-shadow: 0 0 10px rgba(0, 255, 204, 0.2); }
+    .btn-save { width: 100%; padding: 15px; background: linear-gradient(45deg, #8A2BE2, #4B0082); color: white; border: none; border-radius: 5px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+    .btn-save:hover { filter: brightness(1.2); transform: scale(1.02); }
+    .btn-cancel { display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; }
+    .btn-cancel:hover { color: white; }
+</style>
+
+<div class="form-card">
+    <h2>{{ 'REGISTRAR' if accion == 'crear' else 'EDITAR' }} VEHÍCULO</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label>Nombre del Vehículo</label>
+            <input type="text" name="nombre" value="{{ vehiculo.Nombre_Vehiculo if vehiculo else '' }}" required placeholder="Ej. CanSat Alpha-1">
+        </div>
+        <div class="form-group">
+            <label>Categoría</label>
+            <input type="text" name="categoria" value="{{ vehiculo.Categoria if vehiculo else '' }}" placeholder="Ej. Atmosférico / Cohetería">
+        </div>
+        <div class="form-group">
+            <label>Estado Operativo</label>
+            <select name="estado">
+                <option value="operativo" {% if vehiculo and vehiculo.Estado == 'operativo' %}selected{% endif %}>Operativo</option>
+                <option value="requiere revision" {% if vehiculo and vehiculo.Estado == 'requiere revision' %}selected{% endif %}>Requiere Revisión</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-save">GUARDAR DATOS</button>
+        <a href="{{ url_for('vehiculos_list') }}" class="btn-cancel">Cancelar</a>
+    </form>
+</div>
 {% endblock %}
