@@ -160,22 +160,56 @@
             desactivarModoBroadcaster();
         });
 
-        socket.on('telemetria', function(t) {
+socket.on('telemetria', function(t) {
+            // DEBUG: Ver en consola qué llega exactamente
+            console.log("Datos recibidos:", t); 
+
             debugEl.innerText = "Rx: " + new Date().toLocaleTimeString();
-            if(t.latitud) document.getElementById('plat').textContent = t.latitud.toFixed(5);
-            if(t.longitud) document.getElementById('plon').textContent = t.longitud.toFixed(5);
-            if(t.apogeo) document.getElementById('p-apo').textContent = t.apogeo + ' m';
-            const pArr = document.getElementById('p-arr'); if(t.evento_1 !== undefined) { pArr.textContent = t.evento_1 ? "ACTIVO" : "---"; pArr.style.color = t.evento_1 ? "#00FF00" : "#FFFFFF"; }
-            const pMai = document.getElementById('p-mai'); if(t.evento_2 !== undefined) { pMai.textContent = t.evento_2 ? "ACTIVO" : "---"; pMai.style.color = t.evento_2 ? "#FF4500" : "#FFFFFF"; }
+            
+            // Textos Simples
+            if(t.latitud !== undefined) document.getElementById('plat').textContent = t.latitud.toFixed(5);
+            if(t.longitud !== undefined) document.getElementById('plon').textContent = t.longitud.toFixed(5);
+            if(t.apogeo !== undefined) document.getElementById('p-apo').textContent = t.apogeo + ' m';
+            
+            // Eventos Booleanos
+            const pArr = document.getElementById('p-arr'); 
+            if(t.evento_1 !== undefined) { 
+                pArr.textContent = t.evento_1 ? "ACTIVO" : "---"; 
+                pArr.style.color = t.evento_1 ? "#00FF00" : "#FFFFFF"; 
+            }
+            
+            const pMai = document.getElementById('p-mai'); 
+            if(t.evento_2 !== undefined) { 
+                pMai.textContent = t.evento_2 ? "ACTIVO" : "---"; 
+                pMai.style.color = t.evento_2 ? "#FF4500" : "#FFFFFF"; 
+            }
+
+            // --- ACTUALIZACIÓN DE GRÁFICAS DONUT ---
+            
+            // Velocidad (Python envía: 'velocidad') -> OK
             if(t.velocidad !== undefined) updateDonut(myChart, t.velocidad, 100);
+            
+            // Vel. Angular (Python envía: 'velocidad_ang') -> OK
             if(t.velocidad_ang !== undefined) updateDonut(myChart2, t.velocidad_ang, 100);
+            
+            // Aceleración (Python envía: 'aceleracion') -> OK
             if(t.aceleracion !== undefined) updateDonut(myChart3, t.aceleracion, 100);
-            if(t.aceleracion_ang !== undefined) updateDonut(myChart4, t.aceleracion_ang, 100);
+            
+            // --- AQUÍ ESTABA EL ERROR ---
+            // Antes tenías 't.aceleracion_ang', pero Python envía 't.acc_ang'
+            if(t.acc_ang !== undefined) updateDonut(myChart4, t.acc_ang, 100);
+
+            // Ambiente
             if(t.temperatura !== undefined) updateDonut(myChart5, t.temperatura, 50);
             if(t.humedad !== undefined) updateDonut(myChart6, t.humedad, 100);
             if(t.presion !== undefined) updateDonut(myChart7, t.presion, 1200);
             if(t.co2 !== undefined) updateDonut(myChart8, t.co2, 1000);
-            if(t.altitud !== undefined) { const timeLabel = new Date().toLocaleTimeString().split(' ')[0]; updateLine(myChart9, timeLabel, t.altitud); }
+            
+            // Gráfica de Línea (Altitud)
+            if(t.altitud !== undefined) { 
+                const timeLabel = new Date().toLocaleTimeString().split(' ')[0]; 
+                updateLine(myChart9, timeLabel, t.altitud); 
+            }
         });
     }
 

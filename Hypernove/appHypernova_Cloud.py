@@ -140,11 +140,20 @@ socketio.start_background_task(check_heartbeats)
 def parse_data(trama_str):
     try:
         d = trama_str.split(',')
+        # Aseguramos que tenga al menos 14 datos (tu trama actual)
         if len(d) < 14: return None
+        
         return {
-            "temperatura": float(d[0]), "humedad": int(d[1]), "presion": float(d[2]),
-            "velocidad": float(d[4]), "aceleracion": float(d[6]),
-            "altitud": float(d[8]), "apogeo": float(d[9])
+            "temperatura": float(d[0]),
+            "humedad": int(d[1]),
+            "presion": float(d[2]),
+            "co2": int(d[3]),            # <--- ESTA LÍNEA ES CRÍTICA (Índice 3)
+            "velocidad": float(d[4]),
+            "velocidad_ang": float(d[5]), # Agregamos esto para completitud
+            "aceleracion": float(d[6]),
+            "acc_ang": float(d[7]),       # Agregamos esto para completitud
+            "altitud": float(d[8]),
+            "apogeo": float(d[9])
         }
     except: return None
 
@@ -431,26 +440,58 @@ def reportes_crear():
 @staff_required
 def ver_reporte():
     misiones = Mision.query.order_by(Mision.Fecha.desc()).all()
-    datos_grafica, stats, mision_actual = [], {'max_alt': 0, 'max_vel': 0, 'max_acc': 0, 'flight_time': 0, 'apogeo_real': 0}, None
+    datos_grafica = []
+    # Inicializamos stats
+    stats = {
+        'max_alt': 0, 
+        'max_vel': 0, 
+        'max_acc': 0, 
+        'flight_time': "00:00:00", 
+        'apogeo_real': 0  # Inicializar en 0
+    }
+    mision_actual = None
+    
     mision_id = request.args.get('mision_id') or (request.form.get('mision_id') if request.method == 'POST' else None)
+    
     if mision_id:
         mision_actual = Mision.query.get(mision_id)
         registros = Trama_CanSat.query.filter_by(FK_ID_Mision=mision_id).order_by(Trama_CanSat.Fecha_Hora).all()
-        parsed, start = [], None
+        
+        parsed_list = []
+        start_time = None
+        end_time = None
+
         for r in registros:
             val = parse_data(r.Trama)
             if val:
                 val['time'] = r.Fecha_Hora.strftime('%H:%M:%S')
-                parsed.append(val)
-                if val['altitud'] > stats['max_alt']: stats['max_alt'] = val['altitud']
-                if val['velocidad'] > stats['max_vel']: stats['max_vel'] = val['velocidad']
-                if val['aceleracion'] > stats['max_acc']: stats['max_acc'] = val['aceleracion']
-                if not start: start = r.Fecha_Hora
-                end = r.Fecha_Hora
-        if start and end: stats['flight_time'] = str(end - start).split('.')[0]
-        datos_grafica = parsed
-    return render_template('reportes.html', misiones=misiones, datos=json.dumps(datos_grafica), stats=stats, mision_actual=mision_actual)
+                parsed_list.append(val)
+                
+                # --- CÁLCULOS ESTADÍSTICOS ---
+                if val['altitud'] > stats['max_alt']: 
+                    stats['max_alt'] = val['altitud']
+                
+                if val['velocidad'] > stats['max_vel']: 
+                    stats['max_vel'] = val['velocidad']
+                
+                if val['aceleracion'] > stats['max_acc']: 
+                    stats['max_acc'] = val['aceleracion']
+                
+                # Control de tiempo
+                if not start_time: start_time = r.Fecha_Hora
+                end_time = r.Fecha_Hora
+        
+        # ASIGNAR APOGEO REAL
+        # El apogeo real es simplemente la altitud máxima alcanzada
+        stats['apogeo_real'] = stats['max_alt']
 
+        if start_time and end_time:
+            delta = end_time - start_time
+            stats['flight_time'] = str(delta).split('.')[0] # Formato HH:MM:SS
+            
+        datos_grafica = parsed_list
+
+    return render_template('reportes.html', misiones=misiones, datos=json.dumps(datos_grafica), stats=stats, mision_actual=mision_actual)
 # ================== SOCKETS (CORREGIDO PARA EVITAR CRASHES) ==================
 
 @socketio.on('join')
