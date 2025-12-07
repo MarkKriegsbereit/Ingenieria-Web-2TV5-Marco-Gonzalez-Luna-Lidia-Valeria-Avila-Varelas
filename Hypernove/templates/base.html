@@ -6,6 +6,16 @@
     <title>{% block title %}Hypernova{% endblock %}</title>
     <link href="[https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap](https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap)" rel="stylesheet">
 
+    <script>
+    // Detectar si la página se cargó desde el caché (botón atrás)
+    window.onpageshow = function(event) {
+        if (event.persisted) {
+            // Si viene del caché, forzamos una recarga real al servidor
+            window.location.reload();
+        }
+    };
+    </script>
+
     <style>
         :root {
             --color-morado: #8A2BE2; --color-morado-hover: #7b24ca;

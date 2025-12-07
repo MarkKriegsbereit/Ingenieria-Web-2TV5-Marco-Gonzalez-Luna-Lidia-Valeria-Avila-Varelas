@@ -6,6 +6,16 @@
     <title>Registro - Hypernova</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     
+    <script>
+    // Detectar si la página se cargó desde el caché (botón atrás)
+    window.onpageshow = function(event) {
+        if (event.persisted) {
+            // Si viene del caché, forzamos una recarga real al servidor
+            window.location.reload();
+        }
+    };
+    </script>
+
     <!-- IMPORTANTE: Vinculación del JS externo -->
     <script src="{{ url_for('static', filename='js/register.js') }}"></script>
 

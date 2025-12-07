@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <title>Cuenta creada</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/cuenta_creada.css') }}">
+
+    <script>
+    window.onpageshow = function(event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    };
+    </script>
 </head>
 <body>
 

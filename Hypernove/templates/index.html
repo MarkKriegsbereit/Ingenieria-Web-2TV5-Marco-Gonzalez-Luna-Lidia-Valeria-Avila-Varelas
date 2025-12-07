@@ -10,6 +10,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
+    <script>
+    window.onpageshow = function(event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    };
+    </script>
+
     <style>
         /* Estilo extra para el botón si no carga el CSS externo */
         .cta-button {
@@ -28,6 +36,17 @@
         .hero-content h1 { font-size: 3rem; margin-bottom: 10px; text-shadow: 0 0 20px #8A2BE2; }
         .hero-content p { font-size: 1.2rem; max-width: 600px; margin-bottom: 30px; color: #ddd; }
     </style>
+
+    <script>
+    // Detectar si la página se cargó desde el caché (botón atrás)
+    window.onpageshow = function(event) {
+        if (event.persisted) {
+            // Si viene del caché, forzamos una recarga real al servidor
+            window.location.reload();
+        }
+    };
+    </script>
+    
 </head>
 <body>
 

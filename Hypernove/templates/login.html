@@ -112,6 +112,15 @@
         .server-alert { background-color: rgba(220, 53, 69, 0.2); border: 1px solid #dc3545; color: #ff6b6b; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
 
     </style>
+
+    <script>
+    window.onpageshow = function(event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    };
+    </script>
+
 </head>
 <body>
 
