@@ -34,7 +34,7 @@ db_url = os.getenv("DATABASE_URL")
 if db_url:
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:root@127.0.0.1/Hypernova'
+    app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+mysqlconnector://hypernova_user:Hyper123!@localhost/Hypernova"
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
