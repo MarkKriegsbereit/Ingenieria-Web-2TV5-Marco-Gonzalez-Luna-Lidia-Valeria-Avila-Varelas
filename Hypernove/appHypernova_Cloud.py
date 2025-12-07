@@ -53,6 +53,18 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 # DICCIONARIO DE STREAMS ACTIVOS
 active_streams = {}
 
+@app.after_request
+def add_security_headers(response):
+    # Esto previene que el navegador guarde la página en el historial de caché
+    # Asegura que el navegador DEBE revalidar la página con el servidor
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    # Para compatibilidad con HTTP/1.0
+    response.headers['Pragma'] = 'no-cache'
+    # Para compatibilidad con HTTP/1.0 y proxies
+    response.headers['Expires'] = '0'
+    
+    return response
+
 # ================== MODELOS ==================
 class Usuario(db.Model):
     __tablename__ = 'Usuarios'
@@ -229,7 +241,26 @@ def login_local():
 
 @app.route('/logout')
 def logout():
-    session.clear(); return redirect(url_for('login'))
+    # 1. Finalizar la sesión de bitácora si existe
+    id_bitacora = session.pop('id_bitacora', None)
+    if id_bitacora:
+        # Usamos app.app_context() porque estamos fuera de una vista normal
+        with app.app_context():
+            try:
+                ns = SesionModel.query.get(id_bitacora)
+                if ns:
+                    ns.Fecha_Hora_Fin = datetime.now()
+                    db.session.commit()
+            except Exception as e:
+                # Opcional: registrar el error de cierre de sesión
+                print(f"Error al cerrar sesión de bitácora: {e}")
+
+    # 2. Borrar todos los datos de sesión (incluyendo user_id, role, etc.)
+    session.clear()
+    
+    # 3. Redirigir inmediatamente a una página pública (como login)
+    # Esto es crucial para que el navegador no tenga una página autenticada para volver.
+    return redirect(url_for('login'))
 
 @app.route("/google_login")
 def google_login(): return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?client_id={GOOGLE_CLIENT_ID}&redirect_uri={GOOGLE_REDIRECT_URI}&response_type=code&scope=openid%20email%20profile")
