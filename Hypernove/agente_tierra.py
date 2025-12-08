@@ -7,7 +7,7 @@ import threading
 import sys
 
 # --- CONFIGURACIÓN ---
-SERVER_URL = 'http://localhost:5000' 
+SERVER_URL = 'http://3.143.186.4.sslip.io:5000' 
 # 115200 es la velocidad estándar para ESP32 por cable. 
 # En Bluetooth el sistema lo ignora y negocia su velocidad, así que es seguro dejarlo así.
 BAUD_RATE = 115200  
