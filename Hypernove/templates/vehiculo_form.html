@@ -17,7 +17,7 @@
 
 <div class="form-card">
     <h2>{{ 'REGISTRAR' if accion == 'crear' else 'EDITAR' }} VEHÍCULO</h2>
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
         <div class="form-group">
             <label>Nombre del Vehículo</label>
             <input type="text" name="nombre" value="{{ vehiculo.Nombre_Vehiculo if vehiculo else '' }}" required placeholder="Ej. CanSat Alpha-1">
@@ -32,6 +32,16 @@
                 <option value="operativo" {% if vehiculo and vehiculo.Estado == 'operativo' %}selected{% endif %}>Operativo</option>
                 <option value="requiere revision" {% if vehiculo and vehiculo.Estado == 'requiere revision' %}selected{% endif %}>Requiere Revisión</option>
             </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Foto del Vehículo (Opcional)</label>
+            <input type="file" name="foto" accept="image/*">
+            {% if vehiculo and vehiculo.Foto_Path %}
+                <p style="color: #00ffcc; margin-top: 5px;">
+                    Foto actual: <a href="{{ url_for('static', filename='vehiculo_fotos/' + vehiculo.Foto_Path) }}" target="_blank">Ver Imagen</a>
+                </p>
+            {% endif %}
         </div>
         <button type="submit" class="btn-save">GUARDAR DATOS</button>
         <a href="{{ url_for('vehiculos_list') }}" class="btn-cancel">Cancelar</a>

@@ -17,6 +17,9 @@ from authlib.integrations.flask_client import OAuth
 from datetime import datetime, timedelta
 import urllib3
 import json
+##nuevo
+from werkzeug.utils import secure_filename
+import time
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 load_dotenv()
@@ -28,6 +31,16 @@ app.secret_key = os.getenv("SECRET_KEY", "dev_key")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI="http://3.143.186.4.sslip.io:5000/google/callback"
+
+UPLOAD_FOLDER = 'static/vehiculo_fotos'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    """Verifica si la extensión del archivo es permitida."""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 # DB
 db_url = os.getenv("DATABASE_URL")
 if db_url:
@@ -82,6 +95,8 @@ class Vehiculo(db.Model):
     Nombre_Vehiculo = db.Column(db.String(100), nullable=False)
     Categoria = db.Column(db.String(100))
     Estado = db.Column(db.Enum('operativo', 'requiere revision'), default='operativo')
+    # NUEVO CAMPO: Guardará la ruta/nombre del archivo de la foto
+    Foto_Path = db.Column(db.String(255), nullable=True)
 
 class Mision(db.Model):
     __tablename__ = 'Mision'
@@ -370,15 +385,53 @@ def usuarios_eliminar(id):
 @login_required
 @staff_required
 def vehiculos_list(): return render_template('vehiculos_list.html', vehiculos=Vehiculo.query.all())
+
+# @app.route('/admin/vehiculos/crear', methods=['GET', 'POST'])
+# @login_required
+# @staff_required
+# def vehiculos_crear():
+#     if request.method == 'POST':
+#         db.session.add(Vehiculo(Nombre_Vehiculo=request.form['nombre'], Categoria=request.form['categoria'], Estado=request.form['estado']))
+#         db.session.commit()
+#         return redirect(url_for('vehiculos_list'))
+#     return render_template('vehiculo_form.html', accion='crear')
+
 @app.route('/admin/vehiculos/crear', methods=['GET', 'POST'])
 @login_required
 @staff_required
 def vehiculos_crear():
     if request.method == 'POST':
-        db.session.add(Vehiculo(Nombre_Vehiculo=request.form['nombre'], Categoria=request.form['categoria'], Estado=request.form['estado']))
+        v = Vehiculo(Nombre_Vehiculo=request.form['nombre'], 
+                     Categoria=request.form['categoria'], 
+                     Estado=request.form['estado'])
+
+        # --- Lógica de Subida de Archivo ---
+        if 'foto' in request.files:
+            file = request.files['foto']
+            # Verifica si hay un archivo y si su extensión es permitida
+            if file and allowed_file(file.filename):
+                # Genera un nombre único con el timestamp
+                filename = str(int(time.time())) + '_' + secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                v.Foto_Path = filename # Guarda el nombre del archivo en el modelo
+        
+        db.session.add(v); 
         db.session.commit()
         return redirect(url_for('vehiculos_list'))
     return render_template('vehiculo_form.html', accion='crear')
+
+#antes de agregar el de abajo este codigo servia
+# @app.route('/admin/vehiculos/editar/<int:id>', methods=['GET', 'POST'])
+# @login_required
+# @staff_required
+# def vehiculos_editar(id):
+#     v = Vehiculo.query.get_or_404(id)
+#     if request.method == 'POST':
+#         v.Nombre_Vehiculo, v.Categoria, v.Estado = request.form['nombre'], request.form['categoria'], request.form['estado']
+#         db.session.commit()
+#         return redirect(url_for('vehiculos_list'))
+#     return render_template('vehiculo_form.html', accion='editar', vehiculo=v)
+
 @app.route('/admin/vehiculos/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 @staff_required
@@ -386,9 +439,24 @@ def vehiculos_editar(id):
     v = Vehiculo.query.get_or_404(id)
     if request.method == 'POST':
         v.Nombre_Vehiculo, v.Categoria, v.Estado = request.form['nombre'], request.form['categoria'], request.form['estado']
+        
+        # --- Lógica de Subida de Archivo ---
+        if 'foto' in request.files:
+            file = request.files['foto']
+            if file and allowed_file(file.filename):
+                # Opcional: Eliminar la foto vieja para no llenar el servidor
+                if v.Foto_Path:
+                     old_path = os.path.join(app.config['UPLOAD_FOLDER'], v.Foto_Path)
+                     if os.path.exists(old_path): os.remove(old_path)
+                     
+                filename = str(int(time.time())) + '_' + secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                v.Foto_Path = filename # Actualiza el nombre del archivo
+                
         db.session.commit()
         return redirect(url_for('vehiculos_list'))
     return render_template('vehiculo_form.html', accion='editar', vehiculo=v)
+
 @app.route('/admin/vehiculos/eliminar/<int:id>', methods=['POST'])
 @login_required
 @staff_required
@@ -412,6 +480,7 @@ def misiones_crear():
     vehiculos = Vehiculo.query.all()
     usuarios = Usuario.query.filter_by(Rol='admin').all()
     return render_template('mision_form.html', accion='crear', vehiculos=vehiculos, usuarios=usuarios)
+
 @app.route('/admin/misiones/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 @staff_required

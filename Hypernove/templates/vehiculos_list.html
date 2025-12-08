@@ -28,6 +28,16 @@
     .btn-edit:hover { background: rgba(0, 204, 255, 0.1); }
     .btn-del { background: transparent; color: #ff4444; border: 1px solid #ff4444; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; transition:0.3s; }
     .btn-del:hover { background: rgba(255, 68, 68, 0.1); }
+
+    /* nuevo css para la miniatura */
+
+    .vehicle-thumb { 
+        width: 50px; 
+        height: 50px; 
+        border-radius: 5px; 
+        object-fit: cover; 
+        border: 1px solid #4B0082;
+    }
 </style>
 
 <div class="crud-container">
@@ -44,6 +54,7 @@
                 <th>CATEGORÍA</th>
                 <th>ESTADO</th>
                 <th>ACCIONES</th>
+                <th>FOTO</th>
             </tr>
         </thead>
         <tbody>
@@ -62,6 +73,15 @@
                     <form method="POST" action="{{ url_for('vehiculos_eliminar', id=v.ID_Vehiculo) }}" onsubmit="return confirm('¿Eliminar vehículo?');">
                         <button type="submit" class="btn-del">X</button>
                     </form>
+                </td>
+                <td>
+                    {% if v.Foto_Path %}
+                        <img src="{{ url_for('static', filename='vehiculo_fotos/' + v.Foto_Path) }}" 
+                             alt="{{ v.Nombre_Vehiculo }}" 
+                             class="vehicle-thumb">
+                    {% else %}
+                        N/A
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
