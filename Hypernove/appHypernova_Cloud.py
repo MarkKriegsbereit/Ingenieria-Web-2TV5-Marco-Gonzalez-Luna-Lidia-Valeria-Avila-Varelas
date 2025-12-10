@@ -277,8 +277,15 @@ def logout():
     # Esto es crucial para que el navegador no tenga una página autenticada para volver.
     return redirect(url_for('login'))
 
+# @app.route("/google_login")
+# def google_login(): return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?client_id={GOOGLE_CLIENT_ID}&redirect_uri={GOOGLE_REDIRECT_URI}&response_type=code&scope=openid%20email%20profile")
+
 @app.route("/google_login")
-def google_login(): return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?client_id={GOOGLE_CLIENT_ID}&redirect_uri={GOOGLE_REDIRECT_URI}&response_type=code&scope=openid%20email%20profile")
+def google_login(): 
+    # Se añade '&prompt=select_account' al final de la URL.
+    # Esto obliga a Google a mostrar la pantalla de selección de cuentas
+    # o de re-autenticación, en lugar de acceder silenciosamente si ya hay una sesión.
+    return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?client_id={GOOGLE_CLIENT_ID}&redirect_uri={GOOGLE_REDIRECT_URI}&response_type=code&scope=openid%20email%20profile&prompt=select_account")
 
 @app.route("/google/callback")
 def google_callback():
