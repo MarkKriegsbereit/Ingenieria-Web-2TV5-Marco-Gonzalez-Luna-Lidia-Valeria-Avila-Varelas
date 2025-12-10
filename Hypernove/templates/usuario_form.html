@@ -20,7 +20,7 @@
     <form method="POST">
         <div class="form-group">
             <label>Nombre Completo</label>
-            <input type="text" name="nombre" value="{{ usuario.Nombre if usuario else '' }}" required>
+            <input type="text" name="nombre" value="{{ usuario.Nombre if usuario else '' }}" required autofocus>
         </div>
         <div class="form-group">
             <label>Correo Electrónico</label>
