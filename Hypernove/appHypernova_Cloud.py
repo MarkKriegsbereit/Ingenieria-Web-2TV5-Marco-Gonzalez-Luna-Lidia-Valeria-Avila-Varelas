@@ -8,6 +8,10 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
 from flask_socketio import SocketIO, emit, join_room, leave_room
+
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired
+
 from sqlalchemy import or_
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -35,6 +39,20 @@ GOOGLE_REDIRECT_URI="http://3.143.186.4.sslip.io:5000/google/callback"
 UPLOAD_FOLDER = 'static/vehiculo_fotos'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# --- Configuración de CORREO ELECTRÓNICO (SMTP) ---
+# Necesitas configurar estas variables en tu archivo .env
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', True)
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')  # Tu correo de envío
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')  # Tu contraseña de aplicación/App Password
+
+mail = Mail(app)
+
+# Serializador de Tokens Seguros
+# Usamos app.secret_key para firmar el token y prevenir manipulaciones.
+s = URLSafeTimedSerializer(app.secret_key, salt='recuperacion-salt')
 
 def allowed_file(filename):
     """Verifica si la extensión del archivo es permitida."""
@@ -310,6 +328,7 @@ def google_callback():
         return redirect(url_for('catalogo_misiones'))
     except: return redirect(url_for('login'))
 
+
 @app.route('/catalogo')
 @login_required
 def catalogo_misiones():
@@ -357,6 +376,81 @@ def register():
             db.session.add(nu); db.session.commit()
             return redirect(url_for('login'))
     return render_template("register.html")
+
+# ================== RECUPERACIÓN DE CONTRASEÑA ==================
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form['email']
+        user = Usuario.query.filter_by(email=email).first()
+
+        # Solo permite la recuperación si es un usuario local (no Google/OAuth)
+        if user and user.oauth_provider in [None, 'local']:
+            try:
+                # 1. Generar token único con caducidad (1 hora)
+                token = s.dumps(email, salt='recuperacion-salt')
+                
+                # 2. Construir URL de reseteo (external=True para que el enlace funcione fuera de AWS)
+                reset_url = url_for('reset_password', token=token, _external=True)
+                
+                # 3. Enviar correo
+                msg = Message(
+                    subject="Restablecer Contraseña - Hypernova",
+                    sender=app.config['MAIL_USERNAME'],
+                    recipients=[email]
+                )
+                msg.body = f"""
+                    Hola {user.Nombre},
+                    Recibimos una solicitud para restablecer tu contraseña.
+                    
+                    Haz clic en el siguiente enlace. Este enlace expirará en 1 hora:
+                    {reset_url}
+                    
+                    Si no solicitaste esto, ignora este correo.
+                """
+                mail.send(msg)
+                
+                flash('Se ha enviado un correo electrónico con instrucciones para restablecer tu contraseña.', 'success')
+                return redirect(url_for('login'))
+                
+            except Exception as e:
+                flash(f'Error al enviar correo: {e}', 'danger')
+                return redirect(url_for('forgot_password'))
+        else:
+            flash('Correo no encontrado o asociado a una cuenta de Google/OAuth.', 'danger')
+            return redirect(url_for('forgot_password'))
+
+    return render_template('forgot_password.html')
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        # 1. Verificar y cargar el email del token (max_age=3600 segundos = 1 hora)
+        email = s.loads(token, salt='recuperacion-salt', max_age=3600)
+    except SignatureExpired:
+        flash('El enlace de restablecimiento ha expirado. Por favor, solicita uno nuevo.', 'danger')
+        return redirect(url_for('forgot_password'))
+    except:
+        flash('El enlace no es válido.', 'danger')
+        return redirect(url_for('forgot_password'))
+
+    user = Usuario.query.filter_by(email=email).first()
+    if not user:
+        flash('Usuario no encontrado.', 'danger')
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        new_password = request.form['password']
+        
+        # 2. Actualizar la contraseña en la base de datos
+        user.Password = generate_password_hash(new_password)
+        db.session.commit()
+        
+        flash('Tu contraseña ha sido restablecida con éxito. Ya puedes iniciar sesión.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('reset_password.html', token=token)
 
 @app.route('/admin/usuarios')
 @login_required
