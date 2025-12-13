@@ -406,7 +406,11 @@ def forgot_password():
                     recipients=[email]
                 )
                 
-                msg.body = f"Hola {user.Nombre},\n\nRecibimos una solicitud para restablecer tu contraseña.\n\nHaz clic en el siguiente enlace. Este enlace expirará en 1 hora:\n{reset_url}\n\nSi no solicitaste esto, ignora este correo."
+                msg.body = "Hola " + user.Nombre + ",\n\n" + \
+                           "Recibimos una solicitud para restablecer tu contraseña.\n\n" + \
+                           "Haz clic en el siguiente enlace. Este enlace expirará en 1 hora:\n" + \
+                           reset_url + "\n\n" + \
+                           "Si no solicitaste esto, ignora este correo."
 
                 mail.send(msg)
                 
