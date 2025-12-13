@@ -48,6 +48,11 @@ app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', True)
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')  # Tu correo de envío
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')  # Tu contraseña de aplicación/App Password
 
+# === NUEVA LÍNEA CLAVE ===
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME') # Establece el remitente por defecto
+app.config['MAIL_CHARSET'] = 'utf-8' # <--- ESTA LÍNEA ES LA SOLUCIÓN
+# ========================
+
 mail = Mail(app)
 
 # Serializador de Tokens Seguros
@@ -400,15 +405,9 @@ def forgot_password():
                     sender=app.config['MAIL_USERNAME'],
                     recipients=[email]
                 )
-                msg.body = f"""
-                    Hola {user.Nombre},
-                    Recibimos una solicitud para restablecer tu contraseña.
-                    
-                    Haz clic en el siguiente enlace. Este enlace expirará en 1 hora:
-                    {reset_url}
-                    
-                    Si no solicitaste esto, ignora este correo.
-                """
+                
+                msg.body = f"Hola {user.Nombre},\n\nRecibimos una solicitud para restablecer tu contraseña.\n\nHaz clic en el siguiente enlace. Este enlace expirará en 1 hora:\n{reset_url}\n\nSi no solicitaste esto, ignora este correo."
+
                 mail.send(msg)
                 
                 flash('Se ha enviado un correo electrónico con instrucciones para restablecer tu contraseña.', 'success')
