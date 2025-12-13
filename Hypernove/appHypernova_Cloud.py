@@ -49,8 +49,8 @@ app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')  # Tu correo de envío
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')  # Tu contraseña de aplicación/App Password
 
 # === NUEVA LÍNEA CLAVE ===
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME') # Establece el remitente por defecto
-app.config['MAIL_CHARSET'] = 'utf-8' # <--- ESTA LÍNEA ES LA SOLUCIÓN
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_CHARSET'] = 'utf-8'
 # ========================
 
 mail = Mail(app)
@@ -402,15 +402,17 @@ def forgot_password():
                 # 3. Enviar correo
                 msg = Message(
                     subject="Restablecer Contraseña - Hypernova",
-                    sender=app.config['MAIL_USERNAME'],
-                    recipients=[email]
+                    recipients=[email],
+                    charset="utf-8"
                 )
                 
-                msg.body = "Hola " + user.Nombre + ",\n\n" + \
-                           "Recibimos una solicitud para restablecer tu contraseña.\n\n" + \
-                           "Haz clic en el siguiente enlace. Este enlace expirará en 1 hora:\n" + \
-                           reset_url + "\n\n" + \
-                           "Si no solicitaste esto, ignora este correo."
+                msg.body = (
+                    f"Hola {user.Nombre},\n\n"
+                    "Recibimos una solicitud para restablecer tu contraseña.\n\n"
+                    "Haz clic en el siguiente enlace (expira en 1 hora):\n"
+                    f"{reset_url}\n\n"
+                    "Si no solicitaste esto, ignora este correo."
+                )
 
                 mail.send(msg)
                 
