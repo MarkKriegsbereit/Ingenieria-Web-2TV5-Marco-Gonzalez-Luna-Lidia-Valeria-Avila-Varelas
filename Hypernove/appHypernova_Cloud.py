@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, s
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
 from flask_socketio import SocketIO, emit, join_room, leave_room
+from sqlalchemy.exc import IntegrityError
 
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
@@ -364,12 +365,46 @@ def admin_dashboard(): return render_template('admin.html')
 @login_required
 def invitado_dashboard():
     u = Usuario.query.get(session.get('user_id'))
+    
     if request.method == 'POST':
-        u.Nombre = request.form['nombre']
-        u.email = request.form['email']
-        if request.form.get('password'): u.Password = generate_password_hash(request.form['password'])
-        db.session.commit()
-        return redirect(url_for('invitado_dashboard'))
+        nuevo_nombre = request.form['nombre']
+        nuevo_email = request.form['email'].strip()
+        
+        # --- 1. VALIDACIÓN DE FORMATO (Formato de correo real) ---
+        if '@' not in nuevo_email or '.' not in nuevo_email:
+            flash('El formato del correo electrónico no es válido. Debe contener @ y un dominio.', 'danger')
+            return redirect(url_for('invitado_dashboard'))
+
+        # --- Lógica de actualización ---
+        u.Nombre = nuevo_nombre
+        
+        # Solo intenta cambiar el correo si es diferente
+        if u.email != nuevo_email:
+            u.email = nuevo_email
+            try:
+                # 2. INTENTA HACER COMMIT (Puede fallar si el correo ya existe)
+                db.session.commit()
+                
+                # Si el correo se cambió con éxito, actualiza la sesión
+                session['email'] = nuevo_email
+                flash('Perfil actualizado con éxito.', 'success')
+                return redirect(url_for('invitado_dashboard'))
+                
+            except IntegrityError:
+                # 3. CAPTURA EL ERROR DE UNICIDAD
+                db.session.rollback() # Revierte la transacción fallida
+                flash('Ese correo electrónico ya está registrado por otro usuario.', 'danger')
+                return redirect(url_for('invitado_dashboard'))
+        else:
+            # Si solo se cambió el nombre (o nada), guardamos y notificamos
+            try:
+                db.session.commit()
+                flash('Perfil actualizado con éxito.', 'success')
+            except:
+                db.session.rollback()
+                flash('Ocurrió un error al guardar el nombre.', 'danger')
+            return redirect(url_for('invitado_dashboard'))
+
     return render_template("invitado.html", usuario=u)
 
 @app.route('/register', methods=['GET', 'POST'])
