@@ -10,6 +10,8 @@ from flask_session import Session
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from sqlalchemy.exc import IntegrityError
 
+import re
+
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 
@@ -483,11 +485,26 @@ def reset_password(token):
     if request.method == 'POST':
         new_password = request.form['password']
         
-        # 2. Actualizar la contraseña en la base de datos
+       # 1. Longitud mínima de 8
+        if len(new_password) < 8:
+            flash('La contraseña debe tener al menos 8 caracteres.', 'danger')
+            return render_template('reset_password.html', token=token)
+        
+        # 2. Verificar que tenga al menos un número
+        if not re.search(r"\d", new_password):
+            flash('La contraseña debe incluir al menos un número.', 'danger')
+            return render_template('reset_password.html', token=token)
+        
+        # 3. Verificar que tenga al menos un símbolo (carácter especial)
+        if not re.search(r"[ !@#$%^&*(),.?\":{}|<>]", new_password):
+            flash('La contraseña debe incluir al menos un símbolo especial (!@#$...).', 'danger')
+            return render_template('reset_password.html', token=token)
+        
+        # --- Si pasa todas las pruebas, guardamos ---
         user.Password = generate_password_hash(new_password)
         db.session.commit()
         
-        flash('Tu contraseña ha sido restablecida con éxito. Ya puedes iniciar sesión.', 'success')
+        flash('Tu contraseña ha sido restablecida con éxito.', 'success')
         return redirect(url_for('login'))
 
     return render_template('reset_password.html', token=token)
