@@ -428,7 +428,9 @@ def forgot_password():
         user = Usuario.query.filter_by(email=email).first()
 
         # Solo permite la recuperación si es un usuario local (no Google/OAuth)
-        if user and user.oauth_provider in [None, 'local']:
+        # if user and user.oauth_provider in [None, 'local']:
+        # Permite a cualquier usuario registrado pedir un reset
+        if user:
             try:
                 # 1. Generar token único con caducidad (1 hora)
                 token = s.dumps(email, salt='recuperacion-salt')
