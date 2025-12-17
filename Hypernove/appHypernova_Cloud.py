@@ -484,6 +484,11 @@ def reset_password(token):
 
     if request.method == 'POST':
         new_password = request.form['password']
+        confirm_password = request.form.get('confirm_password')
+
+        if new_password != confirm_password:
+            flash('Las contraseñas no coinciden. Inténtalo de nuevo.', 'danger')
+            return render_template('reset_password.html', token=token)
         
        # 1. Longitud mínima de 8
         if len(new_password) < 8:
