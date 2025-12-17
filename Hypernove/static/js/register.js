@@ -16,33 +16,46 @@ function validarFormulario(event) {
 
     let valido = true;
     
-    // Regex estándar para email
+    // 1. Validar Correo
     const regexCorreo = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
     if (!regexCorreo.test(usuario)) {
         errorUsuario.textContent = "Correo inválido. Ej: usuario@dominio.com";
         valido = false;
     }
 
+    // 2. Validar Contraseña (Complejidad)
+    // Explicación de los Regex:
+    // \d busca un número
+    // [!@#$%^&*(),.?":{}|<>] busca un símbolo especial
+    const tieneNumero = /\d/.test(password);
+    const tieneSimbolo = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
     if (password.length < 8) {
-        errorPassword.textContent = "La contraseña debe tener al menos 8 caracteres.";
+        errorPassword.textContent = "Mínimo 8 caracteres.";
+        valido = false;
+    } else if (!tieneNumero) {
+        errorPassword.textContent = "Debe incluir al menos un número.";
+        valido = false;
+    } else if (!tieneSimbolo) {
+        errorPassword.textContent = "Debe incluir al menos un símbolo (!@#$...).";
         valido = false;
     }
 
+    // 3. Validar Coincidencia
     if (password !== confirmPassword) {
         errorConfirm.textContent = "Las contraseñas no coinciden.";
         valido = false;
     }
 
-    // Si hay errores, cancelamos el envío
+    // Si NO es válido, detenemos el envío
     if (!valido) {
         event.preventDefault();
         return false;
     }
 
-    // Mensaje visual de éxito antes de que el servidor procese
+    // Mensaje visual de éxito
     mensajeExito.textContent = "✔ Datos válidos. Procesando registro...";
-    mensajeExito.style.color = "#00ff00"; // Verde lima brillante
+    mensajeExito.style.color = "#00ffcc"; // Color Hypernova
 
     return true;
 }

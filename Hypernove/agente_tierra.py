@@ -109,11 +109,21 @@ def procesar_linea(raw_line):
 
     try:
         payload = {
-            "temperatura": float(datos[0]), "humedad": int(datos[1]), 
-            "presion": float(datos[2]), "co2": int(datos[3]),
-            "velocidad": float(datos[4]), "altitud": float(datos[8]), 
-            "apogeo": float(datos[9]),
-            "evento_1": bool(int(datos[12])), "evento_2": bool(int(datos[13]))
+            "temperatura": float(datos[0]), 
+            "humedad": int(datos[1]), 
+            "presion": float(datos[2]), 
+            "co2": int(datos[3]),
+            "velocidad": float(datos[4]), 
+            "velocidad_ang": float(datos[5]), 
+            "aceleracion": float(datos[6]), 
+            "acc_ang": float(datos[7]),
+            "altitud": float(datos[8]), 
+            "apogeo": float(datos[9]), 
+            "latitud": float(datos[10]), 
+            "longitud": float(datos[11]),
+            # Convertimos "1"/"0" a True/False
+            "evento_1": bool(int(datos[12])), 
+            "evento_2": bool(int(datos[13]))
         }
         sio.emit('ingest_telemetry', {'mission_id': current_mission, 'payload': payload, 'raw_line': raw_line})
         print(f"📡 Tx > Alt: {datos[8]}m | Eventos: {datos[12]}-{datos[13]}")
