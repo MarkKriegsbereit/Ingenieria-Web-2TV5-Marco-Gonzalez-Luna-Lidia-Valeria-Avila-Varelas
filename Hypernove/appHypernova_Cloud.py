@@ -170,6 +170,25 @@ class BitacoraDB(db.Model):
     Usuario_Responsable = db.Column(db.String(100))
 
 # ================== TAREA DE FONDO ==================
+# def check_heartbeats():
+#     while True:
+#         eventlet.sleep(5)
+#         now = datetime.now()
+#         for mid in list(active_streams.keys()):
+#             stream = active_streams[mid]
+#             last_beat = stream.get('last_heartbeat')
+            
+#             if last_beat and (now - last_beat).total_seconds() > 20:
+#                 print(f"⚠️ Misión {mid}: Timeout de Agente. Cerrando.")
+#                 socketio.emit('status_msg', {'msg': '⚠️ SEÑAL PERDIDA (Timeout)'}, to=mid)
+#                 socketio.emit('stream_ended', {'force_reset': True}, to=mid)
+#                 if mid in active_streams:
+#                     del active_streams[mid]
+#                 # Corrección: usar server.emit para broadcast global sin error
+#                 socketio.server.emit('mission_stopped', {'mission_id': mid}) 
+
+# socketio.start_background_task(check_heartbeats)
+
 def check_heartbeats():
     while True:
         eventlet.sleep(5)
@@ -178,16 +197,14 @@ def check_heartbeats():
             stream = active_streams[mid]
             last_beat = stream.get('last_heartbeat')
             
-            if last_beat and (now - last_beat).total_seconds() > 20:
+            # Aumentamos a 45 segundos para dar margen al Bluetooth del ESP32 tanto en Win como en Mac
+            if last_beat and (now - last_beat).total_seconds() > 45:
                 print(f"⚠️ Misión {mid}: Timeout de Agente. Cerrando.")
                 socketio.emit('status_msg', {'msg': '⚠️ SEÑAL PERDIDA (Timeout)'}, to=mid)
                 socketio.emit('stream_ended', {'force_reset': True}, to=mid)
                 if mid in active_streams:
                     del active_streams[mid]
-                # Corrección: usar server.emit para broadcast global sin error
-                socketio.server.emit('mission_stopped', {'mission_id': mid}) 
-
-socketio.start_background_task(check_heartbeats)
+                socketio.server.emit('mission_stopped', {'mission_id': mid})
 
 def parse_data(trama_str):
     try:
