@@ -589,23 +589,42 @@ def vehiculos_list(): return render_template('vehiculos_list.html', vehiculos=Ve
 @staff_required
 def vehiculos_crear():
     if request.method == 'POST':
-        v = Vehiculo(Nombre_Vehiculo=request.form['nombre'], 
-                     Categoria=request.form['categoria'], 
-                     Estado=request.form['estado'])
+        # 1. Extraer y limpiar los datos (strip elimina espacios vacíos accidentales)
+        nombre = request.form.get('nombre', '').strip()
+        categoria = request.form.get('categoria', '').strip()
+        estado = request.form.get('estado')
 
-        # --- Lógica de Subida de Archivo ---
+        # 2. VALIDACIÓN: Si falta el nombre o la categoría, recarga con error
+        if not nombre or not categoria:
+            flash('Error: El nombre y la categoría son campos obligatorios.', 'danger')
+            return render_template('vehiculo_form.html', accion='crear')
+
+        # 3. Crear el objeto solo si pasó la validación
+        v = Vehiculo(
+            Nombre_Vehiculo=nombre, 
+            Categoria=categoria, 
+            Estado=estado
+        )
+
+        # --- Lógica de Subida de Archivo (Se mantiene opcional) ---
         if 'foto' in request.files:
             file = request.files['foto']
-            # Verifica si hay un archivo y si su extensión es permitida
-            if file and allowed_file(file.filename):
-                # Genera un nombre único con el timestamp
+            # Verifica que realmente se haya seleccionado un archivo
+            if file and file.filename != '' and allowed_file(file.filename):
                 filename = str(int(time.time())) + '_' + secure_filename(file.filename)
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                v.Foto_Path = filename # Guarda el nombre del archivo en el modelo
+                v.Foto_Path = filename
         
-        db.session.add(v); 
-        db.session.commit()
-        return redirect(url_for('vehiculos_list'))
+        try:
+            db.session.add(v)
+            db.session.commit()
+            flash('Vehículo registrado correctamente.', 'success')
+            return redirect(url_for('vehiculos_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error en la base de datos: {e}', 'danger')
+            return render_template('vehiculo_form.html', accion='crear')
+
     return render_template('vehiculo_form.html', accion='crear')
 
 #antes de agregar el de abajo este codigo servia
