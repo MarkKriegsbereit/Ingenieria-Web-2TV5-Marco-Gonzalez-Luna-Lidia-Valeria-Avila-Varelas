@@ -85,17 +85,18 @@
             <small id="errorUsuario" class="error-text"></small>
         </div>
 
-        <div class="form-group">
+       <div class="form-group">
             <label>Contraseña</label>
             <input type="password" 
                 name="password" 
                 id="password" 
-                required
-                pattern="(?=.*\d)(?=.*[ !@#$%^&*(),.?\":{}|<>]).{8,}"
+                required 
+                minlength="8"
+                pattern="(?=.*\d)(?=.*[\W_]).{8,}"
                 title="Mínimo 8 caracteres, al menos un número y un símbolo especial.">
             <small id="errorPassword" class="error-text">Mínimo 8 caracteres, 1 número y 1 símbolo.</small>
         </div>
-
+        
         <div class="form-group">
             <label>Confirmar Contraseña</label>
             <input type="password" 
