@@ -527,17 +527,40 @@ def usuarios_crear():
         db.session.commit()
         return redirect(url_for('usuarios_list'))
     return render_template('usuario_form.html', accion='crear')
+
+# @app.route('/admin/usuarios/editar/<int:id>', methods=['GET', 'POST'])
+# @login_required
+# @staff_required
+# def usuarios_editar(id):
+#     u = Usuario.query.get_or_404(id)
+#     if request.method == 'POST':
+#         u.Nombre, u.email, u.Rol = request.form['nombre'], request.form['email'], request.form['rol']
+#         if request.form.get('password'): u.Password = generate_password_hash(request.form.get('password'))
+#         db.session.commit()
+#         return redirect(url_for('usuarios_list'))
+#     return render_template('usuario_form.html', accion='editar', usuario=u)
+
 @app.route('/admin/usuarios/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 @staff_required
 def usuarios_editar(id):
     u = Usuario.query.get_or_404(id)
     if request.method == 'POST':
-        u.Nombre, u.email, u.Rol = request.form['nombre'], request.form['email'], request.form['rol']
-        if request.form.get('password'): u.Password = generate_password_hash(request.form.get('password'))
+        u.Nombre = request.form['nombre']
+        u.email = request.form['email']
+        u.Rol = request.form['rol']
+        
+        # Solo actualiza la contraseña si el campo existe en el formulario (caso 'crear')
+        # En edición, como quitamos el input, este if se saltará automáticamente
+        if 'password' in request.form and request.form.get('password'):
+            u.Password = generate_password_hash(request.form.get('password'))
+            
         db.session.commit()
+        flash('Usuario actualizado correctamente', 'success')
         return redirect(url_for('usuarios_list'))
+        
     return render_template('usuario_form.html', accion='editar', usuario=u)
+
 @app.route('/admin/usuarios/eliminar/<int:id>', methods=['POST'])
 @login_required
 @staff_required

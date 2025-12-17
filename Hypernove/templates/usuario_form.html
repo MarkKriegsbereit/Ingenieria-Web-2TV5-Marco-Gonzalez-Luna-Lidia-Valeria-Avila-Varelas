@@ -34,10 +34,26 @@
                 <option value="admin" {% if usuario and usuario.Rol == 'admin' %}selected{% endif %}>Administrador</option>
             </select>
         </div>
+
+       {% if accion == 'crear' %}
         <div class="form-group">
-            <label>Contraseña <small style="color:#666;">(Dejar vacío si no se cambia)</small></label>
-            <input type="password" name="password" {% if accion == 'crear' %}required{% endif %}>
+            <label>Contraseña</label>
+            <input type="password" name="password" required>
+            <small style="color: #666;">Mínimo 8 caracteres, un número y un símbolo.</small>
         </div>
+        {% else %}
+        <div class="form-group" style="border-top: 1px solid #333; padding-top: 20px; margin-top: 20px;">
+            <label>Seguridad de la Cuenta</label>
+            <p style="color: #666; font-size: 0.85rem; margin-bottom: 10px;">
+                Por seguridad, la contraseña no se puede editar manualmente.
+            </p>
+            <a href="{{ url_for('forgot_password') }}" class="btn-save" 
+               style="display: block; text-decoration: none; text-align: center; background: #5D3FD3; font-size: 0.8rem; padding: 10px;">
+                ENVIAR ENLACE DE RESTABLECIMIENTO
+            </a>
+        </div>
+        {% endif %}
+
         <button type="submit" class="btn-save">GUARDAR USUARIO</button>
         <a href="{{ url_for('usuarios_list') }}" class="btn-cancel">Cancelar</a>
     </form>
