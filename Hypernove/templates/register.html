@@ -75,13 +75,13 @@
         
         <div class="form-group">
             <label>Nombre de Usuario</label>
-            <input type="text" name="username" placeholder="Tu nombre" required autofocus>
+            <input type="text" name="username" placeholder="Tu nombre" value="{{ username if username else '' }}" required autofocus>
         </div>
 
         <div class="form-group">
             <label>Correo Electrónico</label>
             <!-- ID 'usuario' es necesario para el JS -->
-            <input type="email" name="email" id="usuario" placeholder="ejemplo@correo.com" required>
+            <input type="email" name="email" id="usuario" placeholder="ejemplo@correo.com" value="{{ email if email else '' }}" required>
             <small id="errorUsuario" class="error-text"></small>
         </div>
 

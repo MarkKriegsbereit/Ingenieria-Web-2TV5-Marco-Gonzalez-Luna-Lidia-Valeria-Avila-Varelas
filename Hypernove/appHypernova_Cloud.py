@@ -436,6 +436,7 @@ def invitado_dashboard():
 #             return redirect(url_for('login'))
 #     return render_template("register.html")
 
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -444,20 +445,47 @@ def register():
         p = request.form.get('password')
         p2 = request.form.get('password2')
 
-        # 1. Validar que las contraseñas coincidan
+        # 1. Verificar si el correo ya existe (Validación solicitada)
+        if Usuario.query.filter_by(email=e).first():
+            return render_template("register.html", 
+                                 mensaje="Este correo electrónico ya está registrado.",
+                                 username=n, 
+                                 email=e)
+
+        # 2. Validar que las contraseñas coincidan
         if p != p2:
-            return render_template("register.html", mensaje="Las contraseñas no coinciden")
+            return render_template("register.html", 
+                                 mensaje="Las contraseñas no coinciden.",
+                                 username=n, 
+                                 email=e)
 
-        # 2. Validar complejidad (8 caracteres, 1 número, 1 símbolo)
-        if len(p) < 8 or not re.search(r"\d", p) or not re.search(r"[ !@#$%^&*(),.?\":{}|<>]", p):
-            return render_template("register.html", mensaje="La contraseña no cumple con los requisitos de seguridad")
+        # 3. Validar complejidad con Regex (8 caracteres, 1 número, 1 símbolo)
+        regex_seguridad = r"^(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
+        if not re.match(regex_seguridad, p):
+            return render_template("register.html", 
+                                 mensaje="La contraseña no cumple con los requisitos de seguridad.",
+                                 username=n, 
+                                 email=e)
 
-        # 3. Guardar si todo está bien
-        if not Usuario.query.filter_by(email=e).first():
-            nu = Usuario(Nombre=n, email=e, Password=generate_password_hash(p), Rol='invitado', oauth_provider='local')
+        # 4. Guardar si todo está bien
+        try:
+            nu = Usuario(
+                Nombre=n, 
+                email=e, 
+                Password=generate_password_hash(p), 
+                Rol='invitado', 
+                oauth_provider='local'
+            )
             db.session.add(nu)
             db.session.commit()
+            flash("Cuenta creada con éxito. Ya puedes iniciar sesión.", "success")
             return redirect(url_for('login'))
+        except Exception as err:
+            db.session.rollback()
+            return render_template("register.html", 
+                                 mensaje=f"Error al registrar: {err}",
+                                 username=n, 
+                                 email=e)
             
     return render_template("register.html")
 
@@ -562,108 +590,87 @@ def reset_password(token):
 @login_required
 @staff_required
 def usuarios_list(): return render_template('usuarios_list.html', usuarios=Usuario.query.all())
+
+# 2. CREAR USUARIO
 @app.route('/admin/usuarios/crear', methods=['GET', 'POST'])
 @login_required
 @staff_required
 def usuarios_crear():
-
     if request.method == 'POST':
+        nombre = request.form.get('nombre', '').strip()
         email = request.form.get('email', '').lower().strip()
-        
-        # Expresión regular para validar formato real y extensiones comunes
-        # Valida que termine en .com, .net, .org, .edu, .mx, etc.
+        password = request.form.get('password')
+        rol = request.form.get('rol')
+
+        # Regex para Email (tu versión con extensiones)
         email_regex = r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.(com|net|org|edu|gov|mx|io|app)$'
-        
+        # Regex para Contraseña (8 caracteres, 1 número, 1 símbolo)
+        pass_regex = r"^(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
+
+        # Validaciones de seguridad
         if not re.match(email_regex, email):
-            flash('Error: El formato del correo no es válido o la extensión no es permitida.', 'danger')
-            return render_template('usuario_form.html', accion='crear')
+            flash('Error: Formato de correo inválido o extensión no permitida.', 'danger')
+        elif Usuario.query.filter_by(email=email).first():
+            flash('Error: El correo electrónico ya está registrado.', 'danger')
+        elif not re.match(pass_regex, password):
+            flash('Error: La contraseña debe tener 8 caracteres, un número y un símbolo.', 'danger')
+        else:
+            # Si pasa todo, guardamos
+            try:
+                nuevo_u = Usuario(
+                    Nombre=nombre, 
+                    email=email, 
+                    Password=generate_password_hash(password), 
+                    Rol=rol, 
+                    oauth_provider='local'
+                )
+                db.session.add(nuevo_u)
+                db.session.commit()
+                flash('Usuario creado con éxito', 'success')
+                return redirect(url_for('usuarios_list'))
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error en base de datos: {str(e)}', 'danger')
 
-        # Verificar si el correo ya existe para evitar duplicados
-        if Usuario.query.filter_by(email=email).first():
-            flash('Ese correo electrónico ya está registrado.', 'danger')
-            return render_template('usuario_form.html', accion='crear')
+        # Si hay error, recarga con los datos actuales para no borrarlos
+        return render_template('usuario_form.html', accion='crear', 
+                               temp_nombre=nombre, temp_email=email, temp_rol=rol)
 
-    if request.method == 'POST':
-        db.session.add(Usuario(Nombre=request.form['nombre'], email=request.form['email'], Password=generate_password_hash(request.form['password']), Rol=request.form['rol']))
-        db.session.commit()
-        return redirect(url_for('usuarios_list'))
     return render_template('usuario_form.html', accion='crear')
 
-# @app.route('/admin/usuarios/editar/<int:id>', methods=['GET', 'POST'])
-# @login_required
-# @staff_required
-# def usuarios_editar(id):
-#     u = Usuario.query.get_or_404(id)
-#     if request.method == 'POST':
-#         u.Nombre, u.email, u.Rol = request.form['nombre'], request.form['email'], request.form['rol']
-#         if request.form.get('password'): u.Password = generate_password_hash(request.form.get('password'))
-#         db.session.commit()
-#         return redirect(url_for('usuarios_list'))
-#     return render_template('usuario_form.html', accion='editar', usuario=u)
-
-# @app.route('/admin/usuarios/editar/<int:id>', methods=['GET', 'POST'])
-# @login_required
-# @staff_required
-# def usuarios_editar(id):
-#     u = Usuario.query.get_or_404(id)
-#     if request.method == 'POST':
-#         u.Nombre = request.form['nombre']
-#         u.email = request.form['email']
-#         u.Rol = request.form['rol']
-        
-#         # Solo actualiza la contraseña si el campo existe en el formulario (caso 'crear')
-#         # En edición, como quitamos el input, este if se saltará automáticamente
-#         if 'password' in request.form and request.form.get('password'):
-#             u.Password = generate_password_hash(request.form.get('password'))
-            
-#         db.session.commit()
-#         flash('Usuario actualizado correctamente', 'success')
-#         return redirect(url_for('usuarios_list'))
-        
-#     return render_template('usuario_form.html', accion='editar', usuario=u)
-
+# 3. EDITAR USUARIO
 @app.route('/admin/usuarios/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 @staff_required
 def usuarios_editar(id):
     u = Usuario.query.get_or_404(id)
+    
     if request.method == 'POST':
-        # 1. Obtener y limpiar datos (Igual que en crear)
-        nuevo_nombre = request.form.get('nombre', '').strip()
-        nuevo_email = request.form.get('email', '').lower().strip()
-        nuevo_rol = request.form.get('rol')
+        nombre = request.form.get('nombre', '').strip()
+        email = request.form.get('email', '').lower().strip()
+        rol = request.form.get('rol')
 
-        # 2. VALIDACIÓN DE CORREO (Regex)
-        # Importante: Mantener la misma seguridad que en la creación
         email_regex = r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.(com|net|org|edu|gov|mx|io|app)$'
-        if not re.match(email_regex, nuevo_email):
-            flash('Error: El formato del correo no es válido o la extensión no es permitida.', 'danger')
-            return render_template('usuario_form.html', accion='editar', usuario=u)
 
-        # 3. VERIFICAR DUPLICADOS (Solo si el correo cambió)
-        if nuevo_email != u.email:
-            if Usuario.query.filter_by(email=nuevo_email).first():
-                flash('Error: El nuevo correo ya está registrado por otro usuario.', 'danger')
-                return render_template('usuario_form.html', accion='editar', usuario=u)
+        # Validaciones
+        if not re.match(email_regex, email):
+            flash('Error: Formato de correo inválido.', 'danger')
+        elif email != u.email and Usuario.query.filter_by(email=email).first():
+            flash('Error: El nuevo correo ya pertenece a otro usuario.', 'danger')
+        else:
+            try:
+                u.Nombre = nombre
+                u.email = email
+                u.Rol = rol
+                db.session.commit()
+                flash('Usuario actualizado correctamente', 'success')
+                return redirect(url_for('usuarios_list'))
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error al actualizar: {str(e)}', 'danger')
 
-        # 4. ACTUALIZAR LOS DATOS
-        u.Nombre = nuevo_nombre
-        u.email = nuevo_email
-        u.Rol = nuevo_rol
-        
-        # Como en el HTML de edición quitamos el campo 'password',
-        # este bloque se saltará solo, manteniendo la clave actual.
-        if 'password' in request.form and request.form.get('password'):
-            u.Password = generate_password_hash(request.form.get('password'))
-            
-        try:
-            db.session.commit()
-            flash('Usuario actualizado correctamente', 'success')
-            return redirect(url_for('usuarios_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error al actualizar: {str(e)}', 'danger')
-            return render_template('usuario_form.html', accion='editar', usuario=u)
+        return render_template('usuario_form.html', accion='editar', usuario=u,
+                               temp_nombre=nombre, temp_email=email, temp_rol=rol)
         
     return render_template('usuario_form.html', accion='editar', usuario=u)
 
