@@ -467,16 +467,13 @@ def forgot_password():
 
     return render_template('forgot_password.html')
 
+
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
-        # 1. Verificar y cargar el email del token (max_age=3600 segundos = 1 hora)
         email = s.loads(token, salt='recuperacion-salt', max_age=3600)
-    except SignatureExpired:
-        flash('El enlace de restablecimiento ha expirado. Por favor, solicita uno nuevo.', 'danger')
-        return redirect(url_for('forgot_password'))
-    except:
-        flash('El enlace no es válido.', 'danger')
+    except (SignatureExpired, BadSignature):
+        flash('El enlace ha expirado o no es válido.', 'danger')
         return redirect(url_for('forgot_password'))
 
     user = Usuario.query.filter_by(email=email).first()
@@ -488,26 +485,20 @@ def reset_password(token):
         new_password = request.form['password']
         confirm_password = request.form.get('confirm_password')
 
+        # 1. Validar coincidencia
         if new_password != confirm_password:
-            flash('Las contraseñas no coinciden. Inténtalo de nuevo.', 'danger')
+            flash('Las contraseñas no coinciden.', 'danger')
             return render_template('reset_password.html', token=token)
         
-       # 1. Longitud mínima de 8
-        if len(new_password) < 8:
-            flash('La contraseña debe tener al menos 8 caracteres.', 'danger')
+        # 2. Validación Regex (8 caracteres, 1 número, 1 símbolo)
+        # Explicación: (?=.*\d) busca un número, (?=.*[!@#$%^&*]) busca el símbolo
+        regex_seguridad = r"^(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
+        
+        if not re.match(regex_seguridad, new_password):
+            flash('La contraseña debe tener al menos 8 caracteres, un número y un símbolo especial.', 'danger')
             return render_template('reset_password.html', token=token)
         
-        # 2. Verificar que tenga al menos un número
-        if not re.search(r"\d", new_password):
-            flash('La contraseña debe incluir al menos un número.', 'danger')
-            return render_template('reset_password.html', token=token)
-        
-        # 3. Verificar que tenga al menos un símbolo (carácter especial)
-        if not re.search(r"[ !@#$%^&*(),.?\":{}|<>]", new_password):
-            flash('La contraseña debe incluir al menos un símbolo especial (!@#$...).', 'danger')
-            return render_template('reset_password.html', token=token)
-        
-        # --- Si pasa todas las pruebas, guardamos ---
+        # Si pasa las pruebas
         user.Password = generate_password_hash(new_password)
         db.session.commit()
         
@@ -515,7 +506,6 @@ def reset_password(token):
         return redirect(url_for('login'))
 
     return render_template('reset_password.html', token=token)
-
 @app.route('/admin/usuarios')
 @login_required
 @staff_required
