@@ -170,6 +170,7 @@ class BitacoraDB(db.Model):
     Usuario_Responsable = db.Column(db.String(100))
 
 # ================== TAREA DE FONDO ==================
+# --- TAREA DE FONDO ROBUSTA ---
 def check_heartbeats():
     while True:
         eventlet.sleep(5)
@@ -178,26 +179,21 @@ def check_heartbeats():
             stream = active_streams[mid]
             last_beat = stream.get('last_heartbeat')
             
-            # Si han pasado más de 15 segundos sin "ingest_telemetry"
-            if last_beat and (now - last_beat).total_seconds() > 15:
-                print(f"⚠️ Misión {mid}: CONEXIÓN PERDIDA. Limpiando recursos.")
+            # Si pasan más de 10 seg sin datos REALES del ESP32
+            if last_beat and (now - last_beat).total_seconds() > 10:
+                print(f"🚨 CRITICAL: Misión {mid} perdió comunicación con ESP32.")
                 
-                # 1. Notificar a los espectadores de la sala
-                socketio.emit('status_msg', {
-                    'msg': '⚠️ ERROR: Se perdió la conexión con el vehículo (Timeout)'
-                }, to=mid)
+                # 1. Avisar a todos en la sala (Dashboard)
+                socketio.emit('status_msg', {'msg': '❌ CONEXIÓN PERDIDA CON VEHÍCULO'}, to=mid)
                 
-                # 2. Ordenar al cliente (frontend) que limpie los gráficos
-                socketio.emit('stream_ended', {
-                    'force_reset': True,
-                    'reason': 'Lost Connection'
-                }, to=mid)
+                # 2. Forzar al frontend a limpiar gráficas y botones
+                socketio.emit('stream_ended', {'force_reset': True}, to=mid)
                 
-                # 3. Eliminar de la lista de streams activos para que no aparezca en catálogo
+                # 3. Limpiar memoria del servidor
                 if mid in active_streams:
                     del active_streams[mid]
                 
-                # 4. Notificar globalmente que la misión ya no está disponible
+                # 4. Avisar al catálogo global
                 socketio.server.emit('mission_stopped', {'mission_id': mid})
 
 
@@ -989,22 +985,18 @@ def handle_agent_msg(data):
     emit('status_msg', {'msg': data.get('msg')}, to=mid)
 
 
+# --- EVENTO DE DESCONEXIÓN BRUSCA ---
 @socketio.on('disconnect')
-def on_disconnect():
+def handle_disconnect():
     sid = request.sid
-    # Buscamos si el SID que se desconectó era un agente de alguna misión
     for mid in list(active_streams.keys()):
+        # Si el que se desconectó es el agente que transmitía
         if active_streams[mid].get('agent_sid') == sid:
-            print(f"❌ Agente de misión {mid} se desconectó abruptamente.")
-            
-            # Notificar error inmediato a la sala
-            socketio.emit('status_msg', {'msg': '❌ CONEXIÓN INTERRUMPIDA (Agente Offline)'}, to=mid)
+            socketio.emit('status_msg', {'msg': '🚫 AGENTE DESCONECTADO'}, to=mid)
             socketio.emit('stream_ended', {'force_reset': True}, to=mid)
-            
-            # Limpiar stream
             del active_streams[mid]
             socketio.server.emit('mission_stopped', {'mission_id': mid})
-            break
+
 
 if __name__ == '__main__':
     with app.app_context(): db.create_all()

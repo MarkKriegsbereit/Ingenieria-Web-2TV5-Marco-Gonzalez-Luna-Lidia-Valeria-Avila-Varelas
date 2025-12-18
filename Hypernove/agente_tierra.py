@@ -76,33 +76,51 @@ def on_stop(data):
 def leer_puerto_thread(port, baud):
     global active_serial, is_streaming
     try:
-        # Timeout de 2s es vital para que el Bluetooth de Mac no truene
-        active_serial = serial.Serial(port, baud, timeout=2)
+        # Timeout corto para detectar desconexiones rápido
+        active_serial = serial.Serial(port, baud, timeout=1) 
         active_serial.reset_input_buffer()
         print(f"🔵 Escuchando datos en {port}...")
         
         while is_streaming:
-            if not active_serial or not active_serial.is_open: break
+            # Verificación proactiva: ¿El puerto sigue abierto?
+            if not active_serial or not active_serial.is_open:
+                raise serial.SerialException("El puerto se cerró inesperadamente.")
             
-            if active_serial.in_waiting:
-                linea = active_serial.readline().decode('utf-8', errors='ignore').strip()
-                if linea:
-                    procesar_linea(linea)
+            try:
+                if active_serial.in_waiting:
+                    linea = active_serial.readline().decode('utf-8', errors='ignore').strip()
+                    if linea:
+                        procesar_linea(linea)
+                else:
+                    # Opcional: Si no hay datos en 5 segundos, podrías lanzar un timeout
+                    pass
+            except serial.SerialException as e:
+                # Si el dispositivo se desconecta físicamente durante la lectura
+                raise e 
+                
             time.sleep(0.01)
             
     except Exception as e:
-        print(f"❌ Error Serial: {e}")
-        sio.emit('agent_message', {'mission_id': current_mission, 'msg': f'Error: {e}'})
+        print(f"❌ ERROR CRÍTICO DE HARDWARE: {e}")
+        # 1. Informar el error específico a la sala
+        sio.emit('agent_message', {
+            'mission_id': current_mission, 
+            'msg': f'⚠️ SEÑAL PERDIDA: El dispositivo se desconectó ({port})'
+        })
+        # 2. IMPORTANTE: Pedir al servidor que detenga la misión formalmente
+        sio.emit('stop_stream_mission', {'mission_id': current_mission})
+        
     finally:
         is_streaming = False
         if active_serial:
             try:
                 active_serial.close()
-            except (OSError, AttributeError):
-                pass # Ignora el Bad File Descriptor en Mac
+            except:
+                pass
             active_serial = None
-        print("🔌 Conexión cerrada.")
+        print("🔌 Hilo de lectura finalizado y puerto liberado.")
 
+        
 def procesar_linea(raw_line):
     datos = raw_line.split(',')
     if len(datos) < 14: return
