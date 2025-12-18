@@ -173,29 +173,24 @@ class BitacoraDB(db.Model):
 # --- TAREA DE FONDO ROBUSTA ---
 def check_heartbeats():
     while True:
-        eventlet.sleep(5)
+        socketio.sleep(3) # Usa la utilidad de socketio para no bloquear
         now = datetime.now()
         for mid in list(active_streams.keys()):
             stream = active_streams[mid]
             last_beat = stream.get('last_heartbeat')
             
-            # Si pasan más de 10 seg sin datos REALES del ESP32
-            if last_beat and (now - last_beat).total_seconds() > 10:
-                print(f"🚨 CRITICAL: Misión {mid} perdió comunicación con ESP32.")
+            # Si no hay datos en 8 segundos, matamos la misión
+            if last_beat and (now - last_beat).total_seconds() > 8:
+                print(f"🚨 Timeout en misión {mid}. Limpiando...")
                 
-                # 1. Avisar a todos en la sala (Dashboard)
-                socketio.emit('status_msg', {'msg': '❌ CONEXIÓN PERDIDA CON VEHÍCULO'}, to=mid)
-                
-                # 2. Forzar al frontend a limpiar gráficas y botones
+                # Forzar desconexión en la interfaz
+                socketio.emit('status_msg', {'msg': '❌ SEÑAL PERDIDA (Timeout)'}, to=mid)
                 socketio.emit('stream_ended', {'force_reset': True}, to=mid)
                 
-                # 3. Limpiar memoria del servidor
                 if mid in active_streams:
                     del active_streams[mid]
                 
-                # 4. Avisar al catálogo global
                 socketio.server.emit('mission_stopped', {'mission_id': mid})
-
 
 def parse_data(trama_str):
     try:

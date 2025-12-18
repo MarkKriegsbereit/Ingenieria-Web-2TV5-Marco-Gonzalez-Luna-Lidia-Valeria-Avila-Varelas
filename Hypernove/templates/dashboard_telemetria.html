@@ -379,36 +379,84 @@
         chart.update('none');
     }
 
-    socket.on('telemetria', function(trama) {
-        if(trama.latitud) document.getElementById('plat').textContent = trama.latitud.toFixed(5);
-        if(trama.longitud) document.getElementById('plon').textContent = trama.longitud.toFixed(5);
-        if(trama.apogeo) document.getElementById('p-apo').textContent = trama.apogeo + ' m';
 
-        const pArr = document.getElementById('p-arr');
-        if(trama.evento_1 !== undefined) {
-            pArr.textContent = trama.evento_1 ? "ACTIVO" : "---";
-            pArr.style.color = trama.evento_1 ? "#00FF00" : "#FFFFFF"; 
-        }
-        const pMai = document.getElementById('p-mai');
-        if(trama.evento_2 !== undefined) {
-            pMai.textContent = trama.evento_2 ? "ACTIVO" : "---";
-            pMai.style.color = trama.evento_2 ? "#FF4500" : "#FFFFFF";
-        }
+// --- LÓGICA DE ROBUSTEZ Y SOCKETS ---
+    
+    // 1. Escuchar fin de transmisión forzada (Timeout o Desconexión de Agente)
+    socket.on('stream_ended', function(data) {
+        const barra = document.getElementById('statusMsg');
+        barra.innerText = ">> " + (data.reason || "Transmisión finalizada");
+        barra.style.color = "#ff4444"; // Cambiar a rojo por error
 
-        if(trama.velocidad !== undefined) updateDonut(myChart, trama.velocidad, 100);
-        if(trama.velocidad_ang !== undefined) updateDonut(myChart2, trama.velocidad_ang, 100);
-        if(trama.aceleracion !== undefined) updateDonut(myChart3, trama.aceleracion, 100);
-        if(trama.aceleracion_ang !== undefined) updateDonut(myChart4, trama.aceleracion_ang, 100);
+        // Resetear UI
+        document.getElementById('btnConnect').style.display = 'inline-block';
+        document.getElementById('btnDisconnect').style.display = 'none';
+        detenerGrabacion();
         
-        if(trama.temperatura !== undefined) updateDonut(myChart5, trama.temperatura, 50);
-        if(trama.humedad !== undefined) updateDonut(myChart6, trama.humedad, 100);
-        if(trama.presion !== undefined) updateDonut(myChart7, trama.presion, 1200);
-        if(trama.co2 !== undefined) updateDonut(myChart8, trama.co2, 1000);
+        // Resetear todas las gráficas a 0 para evitar confusión visual
+        resetCharts();
+    });
 
-        if(trama.altitud !== undefined) {
-            const timeLabel = new Date().toLocaleTimeString().split(' ')[0];
-            updateLine(myChart9, timeLabel, trama.altitud);
+    function resetCharts() {
+        const charts = [myChart, myChart2, myChart3, myChart4, myChart5, myChart6, myChart7, myChart8];
+        charts.forEach(c => {
+            c.data.datasets[0].data = [0, 100]; // Reset a cero
+            c.update('none');
+        });
+        // Limpiar gráfica de altitud
+        myChart9.data.labels = [];
+        myChart9.data.datasets[0].data = [];
+        myChart9.update();
+    }
+
+    // 2. Manejo de Telemetría con Try/Catch (Evita que la página se congele)
+    socket.on('telemetria', function(trama) {
+        try {
+            if (!trama) return;
+
+            // Actualización de Textos
+            if(trama.latitud !== undefined) document.getElementById('plat').textContent = trama.latitud.toFixed(5);
+            if(trama.longitud !== undefined) document.getElementById('plon').textContent = trama.longitud.toFixed(5);
+            if(trama.apogeo !== undefined) document.getElementById('p-apo').textContent = trama.apogeo + ' m';
+
+            // Eventos
+            const pArr = document.getElementById('p-arr');
+            if(trama.evento_1 !== undefined) {
+                pArr.textContent = trama.evento_1 ? "ACTIVO" : "---";
+                pArr.style.color = trama.evento_1 ? "#00FF00" : "#FFFFFF"; 
+            }
+            const pMai = document.getElementById('p-mai');
+            if(trama.evento_2 !== undefined) {
+                pMai.textContent = trama.evento_2 ? "ACTIVO" : "---";
+                pMai.style.color = trama.evento_2 ? "#FF4500" : "#FFFFFF";
+            }
+
+            // Actualización de Gráficas (Donas e Inferiores)
+            if(trama.velocidad !== undefined) updateDonut(myChart, trama.velocidad, 100);
+            if(trama.velocidad_ang !== undefined) updateDonut(myChart2, trama.velocidad_ang, 100);
+            if(trama.aceleracion !== undefined) updateDonut(myChart3, trama.aceleracion, 100);
+            if(trama.acc_ang !== undefined) updateDonut(myChart4, trama.acc_ang, 100);
+            
+            if(trama.temperatura !== undefined) updateDonut(myChart5, trama.temperatura, 50);
+            if(trama.humedad !== undefined) updateDonut(myChart6, trama.humedad, 100);
+            if(trama.presion !== undefined) updateDonut(myChart7, trama.presion, 1200);
+            if(trama.co2 !== undefined) updateDonut(myChart8, trama.co2, 1000);
+
+            // Línea de Altitud
+            if(trama.altitud !== undefined) {
+                const timeLabel = new Date().toLocaleTimeString().split(' ')[0];
+                updateLine(myChart9, timeLabel, trama.altitud);
+            }
+
+        } catch (error) {
+            console.error("Fallo crítico al procesar telemetría:", error);
+            // Si el error es persistente, podríamos notificar al usuario en la barra
+            document.getElementById('statusMsg').innerText = ">> Error de procesamiento de datos";
         }
+
+
+    // Mantener tus funciones de control (conectarSerial, buscarPuertos, etc.) igual...
+
     });
 </script>
 {% endblock %}
