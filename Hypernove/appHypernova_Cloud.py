@@ -602,20 +602,10 @@ def usuarios_crear():
         password = request.form.get('password')
         rol = request.form.get('rol')
 
-        # Regex para Email (tu versión con extensiones)
-        email_regex = r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.(com|net|org|edu|gov|mx|io|app)$'
-        # Regex para Contraseña (8 caracteres, 1 número, 1 símbolo)
-        pass_regex = r"^(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
-
-        # Validaciones de seguridad
-        if not re.match(email_regex, email):
-            flash('Error: Formato de correo inválido o extensión no permitida.', 'danger')
-        elif Usuario.query.filter_by(email=email).first():
-            flash('Error: El correo electrónico ya está registrado.', 'danger')
-        elif not re.match(pass_regex, password):
-            flash('Error: La contraseña debe tener 8 caracteres, un número y un símbolo.', 'danger')
-        else:
-            # Si pasa todo, guardamos
+        # La única validación que Python DEBE hacer es la existencia en DB
+        email_existe = Usuario.query.filter_by(email=email).first()
+        
+        if not email_existe:
             try:
                 nuevo_u = Usuario(
                     Nombre=nombre, 
@@ -630,11 +620,11 @@ def usuarios_crear():
                 return redirect(url_for('usuarios_list'))
             except Exception as e:
                 db.session.rollback()
-                flash(f'Error en base de datos: {str(e)}', 'danger')
-
-        # Si hay error, recarga con los datos actuales para no borrarlos
+        
+        # Si el email existe o hubo error de DB, mandamos error_email=True
         return render_template('usuario_form.html', accion='crear', 
-                               temp_nombre=nombre, temp_email=email, temp_rol=rol)
+                               temp_nombre=nombre, temp_email=email, temp_rol=rol, 
+                               error_email=True)
 
     return render_template('usuario_form.html', accion='crear')
 
@@ -650,14 +640,10 @@ def usuarios_editar(id):
         email = request.form.get('email', '').lower().strip()
         rol = request.form.get('rol')
 
-        email_regex = r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.(com|net|org|edu|gov|mx|io|app)$'
+        # Verificar si el nuevo email ya lo tiene otro usuario
+        email_duplicado = email != u.email and Usuario.query.filter_by(email=email).first()
 
-        # Validaciones
-        if not re.match(email_regex, email):
-            flash('Error: Formato de correo inválido.', 'danger')
-        elif email != u.email and Usuario.query.filter_by(email=email).first():
-            flash('Error: El nuevo correo ya pertenece a otro usuario.', 'danger')
-        else:
+        if not email_duplicado:
             try:
                 u.Nombre = nombre
                 u.email = email
@@ -667,13 +653,12 @@ def usuarios_editar(id):
                 return redirect(url_for('usuarios_list'))
             except Exception as e:
                 db.session.rollback()
-                flash(f'Error al actualizar: {str(e)}', 'danger')
 
         return render_template('usuario_form.html', accion='editar', usuario=u,
-                               temp_nombre=nombre, temp_email=email, temp_rol=rol)
+                               temp_nombre=nombre, temp_email=email, temp_rol=rol,
+                               error_email=True)
         
     return render_template('usuario_form.html', accion='editar', usuario=u)
-
 @app.route('/admin/usuarios/eliminar/<int:id>', methods=['POST'])
 @login_required
 @staff_required
