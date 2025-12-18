@@ -528,25 +528,23 @@ def reset_password(token):
         new_password = request.form['password']
         confirm_password = request.form.get('confirm_password')
 
-        # 1. Validar coincidencia
-        if new_password != confirm_password:
+    if new_password != confirm_password:
             flash('Las contraseñas no coinciden.', 'danger')
             return render_template('reset_password.html', token=token)
         
-        # 2. Validación Regex (8 caracteres, 1 número, 1 símbolo)
-        # Explicación: (?=.*\d) busca un número, (?=.*[!@#$%^&*]) busca el símbolo
-        regex_seguridad = r"^(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
+        # Regex idéntica a la de JS
+    regex_seguridad = r"^(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
         
-        if not re.match(regex_seguridad, new_password):
+    if not re.match(regex_seguridad, new_password):
             flash('La contraseña debe tener al menos 8 caracteres, un número y un símbolo especial.', 'danger')
             return render_template('reset_password.html', token=token)
         
-        # Si pasa las pruebas
-        user.Password = generate_password_hash(new_password)
-        db.session.commit()
+# Guardar contraseña
+    user.Password = generate_password_hash(new_password)
+    db.session.commit()
         
-        flash('Tu contraseña ha sido restablecida con éxito.', 'success')
-        return redirect(url_for('login'))
+    flash('Tu contraseña ha sido restablecida con éxito.', 'success')
+    return redirect(url_for('login'))
 
     return render_template('reset_password.html', token=token)
 
