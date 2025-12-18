@@ -3,46 +3,111 @@
 
 {% block content %}
 <style>
-    .form-card { max-width: 500px; margin: 40px auto; background: #1a1a1a; padding: 30px; border-radius: 15px; border: 1px solid #00ccff; box-shadow: 0 0 30px rgba(0, 204, 255, 0.15); }
+    /* Estructura Principal */
+    .form-card { 
+        max-width: 500px; 
+        margin: 40px auto; 
+        background: #1a1a1a; 
+        padding: 30px; 
+        border-radius: 15px; 
+        border: 1px solid #00ccff; 
+        box-shadow: 0 0 30px rgba(0, 204, 255, 0.15); 
+    }
     h2 { text-align: center; color: white; font-family: 'Orbitron'; margin-bottom: 30px; }
     .form-group { margin-bottom: 20px; }
     label { display: block; color: #aaa; margin-bottom: 8px; font-size: 0.9rem; }
-    input, select { width: 100%; padding: 12px; background: #0a0a0a; border: 1px solid #444; color: white; border-radius: 5px; transition: 0.3s; }
-    input:focus, select:focus { border-color: #00ccff; outline: none; box-shadow: 0 0 10px rgba(0, 204, 255, 0.2); }
     
-    /* Estilos para Validación */
+    /* Inputs y Selects */
+    input, select { 
+        width: 100%; padding: 12px; background: #0a0a0a; border: 1px solid #444; 
+        color: white; border-radius: 5px; transition: 0.3s; 
+    }
+    input:focus, select:focus { 
+        border-color: #00ccff; outline: none; box-shadow: 0 0 10px rgba(0, 204, 255, 0.2); 
+    }
+    
+    /* Validación Dinámica de Contraseña */
     .politicas-lista { list-style: none; padding: 0; margin: 10px 0; }
     .politica-item { font-size: 0.8rem; color: #555; margin-bottom: 4px; transition: 0.3s; }
     .politica-item.cumplido { color: #8bff8b; }
-    .input-error { border-color: #dc3545 !important; }
-    .input-success { border-color: #28a745 !important; }
+    
+    /* Estados de Input */
+    .input-error { border-color: #dc3545 !important; box-shadow: 0 0 8px rgba(220, 53, 69, 0.4) !important; }
+    .input-success { border-color: #28a745 !important; box-shadow: 0 0 8px rgba(40, 167, 69, 0.4) !important; }
 
-    .btn-save { width: 100%; padding: 15px; background: linear-gradient(45deg, #00ccff, #0066ff); color: white; border: none; border-radius: 5px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+    /* Botones */
+    .btn-save { 
+        width: 100%; padding: 15px; background: linear-gradient(45deg, #00ccff, #0066ff); 
+        color: white; border: none; border-radius: 5px; font-family: 'Orbitron'; 
+        font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; 
+    }
     .btn-save:hover:not(:disabled) { filter: brightness(1.2); transform: scale(1.02); }
     .btn-save:disabled { background: #333; cursor: not-allowed; filter: grayscale(1); opacity: 0.5; }
     .btn-cancel { display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; }
     .btn-cancel:hover { color: white; }
+
+    /* Mensaje de Error con Contorno */
+    .server-alert {
+        background-color: rgba(220, 53, 69, 0.15); 
+        border: 2px solid #dc3545;                 /* CONTORNO SÓLIDO */
+        color: #ff6b6b;                            
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        text-align: center;
+        box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
+    }
+    .success-alert {
+        background-color: rgba(40, 167, 69, 0.15);
+        border: 2px solid #28a745;                 /* CONTORNO VERDE */
+        color: #8bff8b;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        text-align: center;
+    }
 </style>
 
 <div class="form-card">
     <h2>{{ 'REGISTRAR' if accion == 'crear' else 'EDITAR' }} USUARIO</h2>
+
+    {# Bloque de Mensajes Flash (Error de email duplicado, etc) #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="{{ 'server-alert' if category == 'danger' else 'success-alert' }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     <form method="POST" id="usuarioForm">
         <div class="form-group">
             <label>Nombre Completo</label>
-            <input type="text" name="nombre" value="{{ usuario.Nombre if usuario else '' }}" required autofocus>
+            <input type="text" name="nombre" 
+                   value="{{ temp_nombre if temp_nombre else (usuario.Nombre if usuario else '') }}" 
+                   required autofocus>
         </div>
         
         <div class="form-group">
             <label>Correo Electrónico</label>
-            <input type="email" name="email" value="{{ usuario.email if usuario else '' }}" required placeholder="ejemplo@dominio.com">
+            <input type="email" name="email" 
+                   value="{{ temp_email if temp_email else (usuario.email if usuario else '') }}" 
+                   required placeholder="ejemplo@dominio.com">
         </div>
 
         <div class="form-group">
             <label>Rol de Sistema</label>
             <select name="rol">
-                <option value="invitado" {% if usuario and usuario.Rol == 'invitado' %}selected{% endif %}>Invitado</option>
-                <option value="mantenimiento" {% if usuario and usuario.Rol == 'mantenimiento' %}selected{% endif %}>Mantenimiento</option>
-                <option value="admin" {% if usuario and usuario.Rol == 'admin' %}selected{% endif %}>Administrador</option>
+                {% set rol_actual = temp_rol if temp_rol else (usuario.Rol if usuario else 'invitado') %}
+                <option value="invitado" {{ 'selected' if rol_actual == 'invitado' }}>Invitado</option>
+                <option value="mantenimiento" {{ 'selected' if rol_actual == 'mantenimiento' }}>Mantenimiento</option>
+                <option value="admin" {{ 'selected' if rol_actual == 'admin' }}>Administrador</option>
             </select>
         </div>
 
@@ -83,12 +148,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const accion = "{{ accion }}";
-    if (accion !== 'crear') return; // Solo validar si estamos creando
+    if (accion !== 'crear') return;
 
     const password = document.getElementById('password');
     const confirm = document.getElementById('confirm_password');
-    const btn = id="btnSubmit";
-    const submitBtn = document.querySelector('.btn-save[type="submit"]');
+    const submitBtn = document.getElementById('btnSubmit');
 
     const reqLongitud = document.getElementById('req-longitud');
     const reqNumero = document.getElementById('req-numero');
@@ -107,17 +171,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const tieneSimbolo = regexSimbolo.test(pVal);
         const coinciden = (pVal === cVal && pVal !== "");
 
-        // Actualizar Lista Visual
         actualizarItem(reqLongitud, tieneLongitud);
         actualizarItem(reqNumero, tieneNumero);
         actualizarItem(reqSimbolo, tieneSimbolo);
         actualizarItem(msgCoincide, coinciden);
 
-        // Feedback en Inputs
         password.className = pVal === "" ? "" : (tieneLongitud && tieneNumero && tieneSimbolo ? "input-success" : "input-error");
         confirm.className = cVal === "" ? "" : (coinciden ? "input-success" : "input-error");
 
-        // Habilitar/Deshabilitar Botón
         submitBtn.disabled = !(tieneLongitud && tieneNumero && tieneSimbolo && coinciden);
     }
 
