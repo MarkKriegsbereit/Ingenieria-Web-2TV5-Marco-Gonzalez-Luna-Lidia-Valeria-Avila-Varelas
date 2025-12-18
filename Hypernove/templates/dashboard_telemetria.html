@@ -4,53 +4,38 @@
 
 {% block content %}
 
-<div id="loader" class="loader-overlay">
+<div id="loader" class="loader-overlay" style="display: flex !important;">
     <div class="spinner"></div>
-    <div class="loader-text">INICIALIZANDO SISTEMAS...</div>
+    <div class="loader-text">SINCRONIZANDO SISTEMAS...</div>
 </div>
 
 <style>
-    /* Bloqueo de scroll durante carga */
-    body.loading { overflow: hidden; }
-
+    /* === ESTILOS DEL LOADER (FIJO Y ESTABLE) === */
+    body.loading { overflow: hidden !important; pointer-events: none; }
     .loader-overlay {
         position: fixed;
         top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: #0a0a0a; /* Sólido inicialmente para ocultar saltos de render */
-        display: flex; /* Cambiado de none a flex para que sea lo primero en verse */
+        width: 100vw; height: 100vh;
+        background: #0a0a0a;
+        display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        z-index: 10000;
+        z-index: 99999;
         transition: opacity 0.8s ease, visibility 0.8s;
     }
-
     .spinner {
-        width: 70px;
-        height: 70px;
+        width: 70px; height: 70px;
         border: 6px solid rgba(138, 43, 226, 0.1);
         border-top: 6px solid #8A2BE2;
         border-radius: 50%;
-        animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+        animation: spin 1s linear infinite;
         margin-bottom: 25px;
-        box-shadow: 0 0 20px rgba(138, 43, 226, 0.2);
     }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .loader-text { font-family: 'Orbitron', sans-serif; color: white; letter-spacing: 4px; font-size: 1rem; }
 
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    .loader-text {
-        font-family: 'Orbitron', sans-serif;
-        color: white;
-        letter-spacing: 4px;
-        font-size: 1rem;
-        text-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
-    }
-
-    /* === ESTILOS DE LA PÁGINA === */
+    /* === ESTILOS DE LA INTERFAZ ORIGINAL === */
     .control-panel {
         background-color: #1a1a1a;
         border: 1px solid #8A2BE2;
@@ -87,7 +72,8 @@
     h4 { color: #8A2BE2; margin-bottom: 5px; font-family: 'Orbitron'; font-size: 0.85rem; }
     h3 { color: #bbb; margin-bottom: 10px; font-family: 'Orbitron'; font-size: 1rem; }
     h2 { color: white; font-family: 'Orbitron'; font-size: 1.4rem; margin: 0;}
-    
+    p { color: white; font-family: 'Roboto'; margin: 0;}
+
     .btn-ctrl { padding: 8px 18px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; font-family: 'Orbitron'; font-size: 0.9rem;}
     .btn-connect { background-color: #007bff; }
     .btn-record { background-color: #28a745; }
@@ -96,9 +82,6 @@
     .btn-refresh { background-color: #8A2BE2; padding: 8px 12px; } 
     .btn-ctrl:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
-
-
-
 
 <div class="dashboard-card" style="max-width: 100%; padding: 15px; margin-top: 80px;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -116,7 +99,8 @@
                 <button class="btn-ctrl btn-refresh" onclick="buscarPuertos()">🔄</button>
             </div>
         </div>
-        <div class="control-group">
+        <div class="control-group" style="display: flex; flex-direction: column; gap: 5px;">
+            <label>&nbsp;</label>
             <button type="button" id="btnConnect" class="btn-ctrl btn-connect" onclick="conectarSerial()">CONECTAR</button>
             <button id="btnDisconnect" class="btn-ctrl btn-disconnect" onclick="desconectarSerial()" style="display:none;">DESCONECTAR</button>
         </div>
@@ -130,7 +114,8 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="control-group">
+        <div class="control-group" style="display: flex; flex-direction: column; gap: 5px;">
+            <label>&nbsp;</label>
             <button id="btnRecord" class="btn-ctrl btn-record" onclick="iniciarGrabacion()" disabled>GRABAR</button>
             <button id="btnStopRecord" class="btn-ctrl btn-stop" onclick="detenerGrabacion()" disabled>DETENER</button>
         </div>
@@ -139,7 +124,7 @@
 
 <div class="flex-container">
     <div class="item" style="flex: 0 0 55%; display: flex; flex-direction: column;">
-        <h3 style="border-bottom: 1px solid #444; width: 100%; text-align: center; padding-bottom: 5px;">AMBIENTE</h3>
+        <h3 style="border-bottom: 1px solid #444; width: 100%; text-align: center; padding-bottom: 5px; margin-bottom: 0;">AMBIENTE</h3>
         <div style="display: flex; width: 100%; justify-content: space-between; align-items: center; flex-grow: 1;">
             <div class="donutBox"><h4>Temp(C°)</h4><canvas id="myChart5"></canvas></div>
             <div class="donutBox"><h4>Hum(%)</h4><canvas id="myChart6"></canvas></div>
@@ -178,64 +163,25 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
 
 <script>
-    // Inyectar clase de carga al body inmediatamente
     document.body.classList.add('loading');
-
     var socket = io();
     let myChart, myChart2, myChart3, myChart4, myChart5, myChart6, myChart7, myChart8, myChart9;
-    // --- PLUGINS DE TEXTO ---
-    const gaugeChartText = {
-        id: 'gaugeChartText',
-        afterDatasetsDraw(chart) {
-            const { ctx, data } = chart;
-            ctx.save();
-            const score = data.datasets[0].data[0];
-            const x = chart.getDatasetMeta(0).data[0].x;
-            const y = chart.getDatasetMeta(0).data[0].y;
-            ctx.font = 'bold 20px Orbitron'; ctx.fillStyle = 'white'; ctx.textAlign = 'center';
-            ctx.fillText(score, x, y - 20); ctx.restore();
-        }
-    };
 
-    const gaugeChartText2 = {
-        id: 'gaugeChartText2',
-        afterDatasetsDraw(chart) {
-            const { ctx, data } = chart;
-            ctx.save();
-            const score = data.datasets[0].data[0];
-            const x = chart.getDatasetMeta(0).data[0].x;
-            const y = chart.getDatasetMeta(0).data[0].y;
-            ctx.font = 'bold 16px Orbitron'; ctx.fillStyle = '#ccc'; ctx.textAlign = 'center';
-            ctx.fillText(score, x, y + 5); ctx.restore();
-        }
-    };
+    // --- CONFIG GRÁFICAS (TEXTOS Y GRADIENTES) ---
+    const gaugeChartText = { id: 'gaugeChartText', afterDatasetsDraw(chart) { const { ctx, data } = chart; ctx.save(); const score = data.datasets[0].data[0]; const x = chart.getDatasetMeta(0).data[0].x; const y = chart.getDatasetMeta(0).data[0].y; ctx.font = 'bold 20px Orbitron'; ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.fillText(score, x, y - 20); ctx.restore(); } };
+    const gaugeChartText2 = { id: 'gaugeChartText2', afterDatasetsDraw(chart) { const { ctx, data } = chart; ctx.save(); const score = data.datasets[0].data[0]; const x = chart.getDatasetMeta(0).data[0].x; const y = chart.getDatasetMeta(0).data[0].y; ctx.font = 'bold 16px Orbitron'; ctx.fillStyle = '#ccc'; ctx.textAlign = 'center'; ctx.fillText(score, x, y + 5); ctx.restore(); } };
 
-    // --- FUNCIONES DE GRÁFICAS ---
     function createData(label, value, total, circumference, rotation) {
         const ctxTemp = document.createElement('canvas').getContext('2d');
         const gradient = ctxTemp.createLinearGradient(0, 0, 100, 0);
         gradient.addColorStop(0, '#E6E6FA'); gradient.addColorStop(0.5, '#8A2BE2'); gradient.addColorStop(1, '#4B0082');
         return {
             labels: [label, 'Empty'],
-            datasets: [{
-                data: [value, total - value],
-                backgroundColor: [gradient, 'rgba(255, 255, 255, 0.1)'],
-                borderWidth: 0, cutout: '75%', circumference: circumference, rotation: rotation, borderRadius: 5
-            }]
+            datasets: [{ data: [value, total - value], backgroundColor: [gradient, 'rgba(255, 255, 255, 0.1)'], borderWidth: 0, cutout: '75%', circumference: circumference, rotation: rotation, borderRadius: 5 }]
         };
     }
 
-    function config(data, plugin) {
-        return {
-            type: 'doughnut', data: data,
-            options: { 
-                responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
-                plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                layout: { padding: 10 }
-            },
-            plugins: [plugin]
-        };
-    }
+    function config(data, plugin) { return { type: 'doughnut', data: data, options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: { display: false }, tooltip: { enabled: false } }, layout: { padding: 10 } }, plugins: [plugin] }; }
 
     function inicializarGraficas() {
         myChart  = new Chart(document.getElementById('myChart'),  config(createData('Speed', 0, 100, 180, 270), gaugeChartText));
@@ -253,18 +199,21 @@
         });
     }
 
-    // --- INICIALIZACIÓN CONTROLADA ---
-    document.addEventListener('DOMContentLoaded', function() {
+    // --- FLUJO DE CARGA ÚNICO ---
+    window.onload = function() {
         const loader = document.getElementById('loader');
         setTimeout(() => {
             inicializarGraficas();
             buscarPuertos();
             loader.style.opacity = '0';
-            setTimeout(() => { loader.style.visibility = 'hidden'; }, 500);
-        }, 800);
-    });
+            setTimeout(() => { 
+                loader.style.display = 'none'; 
+                document.body.classList.remove('loading'); 
+            }, 800);
+        }, 1000);
+    };
 
-    // --- LÓGICA DE SOCKETS Y CONTROL ---
+    // --- FUNCIONES DE CONTROL ---
     function buscarPuertos() { socket.emit('buscar_puertos'); }
     socket.on('lista_puertos', function(puertos) {
         const select = document.getElementById('comPort');
@@ -293,15 +242,17 @@
         socket.emit('iniciar_grabacion', { mision_id: mId });
         document.getElementById('btnRecord').disabled = true;
         document.getElementById('btnStopRecord').disabled = false;
+        document.getElementById('misionSelect').disabled = true;
     }
 
     function detenerGrabacion() {
         socket.emit('detener_grabacion');
         document.getElementById('btnRecord').disabled = false;
         document.getElementById('btnStopRecord').disabled = true;
+        document.getElementById('misionSelect').disabled = false;
     }
 
-    // --- ROBUSTEZ: MANEJO DE DESCONEXIÓN ---
+    // --- ROBUSTEZ Y ACTUALIZACIÓN ---
     socket.on('stream_ended', function(data) {
         const barra = document.getElementById('statusMsg');
         barra.innerText = ">> " + (data.reason || "Transmisión finalizada");
@@ -310,59 +261,20 @@
         resetCharts();
     });
 
-
-
-    // --- NUEVA LÓGICA DE INICIALIZACIÓN ROBUSTA ---
-    window.onload = function() {
-        const loader = document.getElementById('loader');
-        
-        // Damos un pequeño respiro para que el navegador procese el renderizado del loader
-        setTimeout(() => {
-            try {
-                inicializarGraficas();
-                buscarPuertos();
-                console.log("✅ Gráficas e interfaces inicializadas");
-            } catch (err) {
-                console.error("❌ Error durante inicialización:", err);
-            } finally {
-                // Finalizamos la carga
-                setTimeout(() => {
-                    loader.style.opacity = '0';
-                    loader.style.visibility = 'hidden';
-                    document.body.classList.remove('loading');
-                }, 1000); // Tiempo extra de cortesía para ver el loader finalizando
-            }
-        }, 500);
-    };
-
-
-
-
-
     function resetCharts() {
-        const charts = [myChart, myChart2, myChart3, myChart4, myChart5, myChart6, myChart7, myChart8];
-        charts.forEach(c => {
-            if(c) {
-                c.data.datasets[0].data = [0, 100]; 
-                c.update('none');
-            }
-        });
-        if(myChart9) {
-            myChart9.data.labels = []; 
-            myChart9.data.datasets[0].data = []; 
-            myChart9.update();
-        }
+        [myChart, myChart2, myChart3, myChart4, myChart5, myChart6, myChart7, myChart8].forEach(c => { if(c) { c.data.datasets[0].data = [0, 100]; c.update('none'); } });
+        if(myChart9) { myChart9.data.labels = []; myChart9.data.datasets[0].data = []; myChart9.update(); }
     }
+
+    function updateDonut(chart, val, total) { if(chart) { chart.data.datasets[0].data = [val, total - val]; chart.update('none'); } }
 
     socket.on('telemetria', function(trama) {
         try {
             document.getElementById('statusMsg').classList.remove('signal-lost');
             document.getElementById('statusMsg').innerText = ">> Recibiendo datos...";
-
             if(trama.latitud) document.getElementById('plat').textContent = trama.latitud.toFixed(5);
             if(trama.longitud) document.getElementById('plon').textContent = trama.longitud.toFixed(5);
             if(trama.apogeo) document.getElementById('p-apo').textContent = trama.apogeo + ' m';
-
             document.getElementById('p-arr').textContent = trama.evento_1 ? "ACTIVO" : "---";
             document.getElementById('p-arr').style.color = trama.evento_1 ? "#00FF00" : "#FFFFFF";
             document.getElementById('p-mai').textContent = trama.evento_2 ? "ACTIVO" : "---";
@@ -381,18 +293,9 @@
             if (myChart9.data.labels.length > 50) { myChart9.data.labels.shift(); myChart9.data.datasets[0].data.shift(); }
             myChart9.data.labels.push(time); myChart9.data.datasets[0].data.push(trama.altitud);
             myChart9.update('none');
-
-        } catch (e) { console.error("Error en telemetría:", e); }
+        } catch (e) { console.error("Error telemetría:", e); }
     });
 
-    function updateDonut(chart, val, total) {
-        chart.data.datasets[0].data = [val, total - val];
-        chart.update('none');
-    }
-
-    socket.on('status_msg', function(data) {
-        document.getElementById('statusMsg').innerText = ">> " + data.msg;
-        if(data.msg.includes("Conectado")) document.getElementById('btnRecord').disabled = false;
-    });
+    socket.on('status_msg', function(data) { document.getElementById('statusMsg').innerText = ">> " + data.msg; if(data.msg.includes("Conectado")) document.getElementById('btnRecord').disabled = false; });
 </script>
 {% endblock %}
