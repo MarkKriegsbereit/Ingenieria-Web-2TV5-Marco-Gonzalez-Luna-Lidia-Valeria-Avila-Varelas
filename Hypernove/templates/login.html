@@ -110,6 +110,8 @@
         /* Mensajes de error */
         .error { color: #ff4444; font-size: 0.85rem; margin-top: 5px; display: block; min-height: 18px;}
         .server-alert { background-color: rgba(220, 53, 69, 0.2); border: 1px solid #dc3545; color: #ff6b6b; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+        .success-alert { background-color: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; color: #8bff8b; /* Este es el verde brillante */ padding: 10px; border-radius: 5px; margin-bottom: 20px; 
+}
 
     </style>
 
@@ -132,7 +134,9 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="server-alert">{{ message }}</div>
+                <div class="{{ 'server-alert' if category == 'danger' else 'success-alert' }}">
+                    {{ message }}
+                </div>
             {% endfor %}
         {% endif %}
     {% endwith %}
