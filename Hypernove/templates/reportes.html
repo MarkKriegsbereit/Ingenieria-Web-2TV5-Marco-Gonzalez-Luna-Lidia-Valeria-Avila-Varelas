@@ -42,9 +42,56 @@
     /* Estado Vacío */
     .empty-state { text-align: center; color: #666; margin-top: 50px; }
     .empty-icon { font-size: 4rem; display: block; margin-bottom: 20px; }
+
+
+    /* --- LOADER STYLE --- */
+    .loader-overlay {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(10, 10, 10, 0.9);
+        display: none; /* Oculto por defecto */
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border: 5px solid rgba(138, 43, 226, 0.2);
+        border-top: 5px solid #8A2BE2; /* Color morado Hypernova */
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .loader-text {
+        font-family: 'Orbitron';
+        color: white;
+        letter-spacing: 2px;
+        font-size: 1rem;
+    }
+
+
+
 </style>
 
 <div class="report-container">
+
+    <div id="loader" class="loader-overlay">
+        <div class="spinner"></div>
+        <div class="loader-text">PROCESANDO TELEMETRÍA...</div>
+    </div>
+
+
+
     <div class="mission-selector">
         <div>
             <h2 style="font-family:'Orbitron'; color:white; margin:0;">ANÁLISIS DE MISIÓN</h2>
@@ -141,76 +188,85 @@
 </div>
 
 <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
-<script>if(typeof Chart === 'undefined') { document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"><\/script>'); }</script>
+
 
 {% if mision_actual %}
-
 <script>
-    const rawData = JSON.parse('{{ datos | safe }}');
-    
-    if(rawData.length > 0) {
-        // === OPTIMIZACIÓN DE RENDIMIENTO ===
-        // Si hay demasiados puntos, el navegador se congela al dibujar 7 gráficas.
-        // Filtramos los datos para mostrar solo una muestra representativa (Downsampling).
-        let dataToRender = rawData;
-        const MAX_POINTS = 1000; // Límite de puntos por gráfica para mantener fluidez
+    // Mostrar loader inmediatamente al hacer clic en Cargar
+    document.querySelector('form').addEventListener('submit', function() {
+        document.getElementById('loader').style.display = 'flex';
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const loader = document.getElementById('loader');
+        const rawData = JSON.parse('{{ datos | safe }}');
         
-        if (rawData.length > MAX_POINTS) {
-            const step = Math.ceil(rawData.length / MAX_POINTS);
-            dataToRender = rawData.filter((_, index) => index % step === 0);
-            console.log(`Optimizando gráficas: Reduciendo de ${rawData.length} a ${dataToRender.length} puntos.`);
+        if(rawData.length > 0) {
+            // Mostramos el loader mientras JS trabaja
+            loader.style.display = 'flex';
+
+            // Usamos setTimeout(0) para permitir que el DOM muestre el loader antes de bloquear el hilo principal con las gráficas
+            setTimeout(() => {
+                let dataToRender = rawData;
+                const MAX_POINTS = 1000;
+                
+                if (rawData.length > MAX_POINTS) {
+                    const step = Math.ceil(rawData.length / MAX_POINTS);
+                    dataToRender = rawData.filter((_, index) => index % step === 0);
+                }
+
+                const labels = dataToRender.map(d => d.time);
+                
+                const commonOptions = {
+                    animation: false,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    normalized: true,
+                    interaction: { mode: 'index', intersect: false },
+                    elements: { point: { radius: 0, hitRadius: 10 } },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#666', maxTicksLimit: 10 }, grid: { color: '#333' } },
+                        y: { ticks: { color: '#aaa' }, grid: { color: '#333' } }
+                    }
+                };
+
+                function createSingleChart(id, dataKey, color, label) {
+                    const ctx = document.getElementById(id);
+                    if (!ctx) return;
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: label,
+                                data: dataToRender.map(d => d[dataKey]),
+                                borderColor: color,
+                                backgroundColor: color + '20',
+                                fill: true,
+                                borderWidth: 2,
+                                tension: 0.1
+                            }]
+                        },
+                        options: commonOptions
+                    });
+                }
+
+                // Dibujar todas las gráficas
+                createSingleChart('altChart', 'altitud', '#8A2BE2', 'Altitud');
+                createSingleChart('velChart', 'velocidad', '#00ffcc', 'Velocidad');
+                createSingleChart('accChart', 'aceleracion', '#ff8800', 'Aceleración');
+                createSingleChart('tempChart', 'temperatura', '#ff4444', 'Temperatura');
+                createSingleChart('presChart', 'presion', '#ffff00', 'Presión');
+                createSingleChart('humChart', 'humedad', '#0099ff', 'Humedad');
+                createSingleChart('co2Chart', 'co2', '#00ff00', 'CO2');
+
+                // Una vez terminadas las 7 gráficas, ocultamos el loader
+                loader.style.display = 'none';
+            }, 50);
         }
-
-        const labels = dataToRender.map(d => d.time);
-        
-        // Configuración común optimizada para rendimiento
-        const commonOptions = {
-            animation: false, // DESACTIVAR ANIMACIÓN PARA CARGA RÁPIDA
-            responsive: true,
-            maintainAspectRatio: false,
-            normalized: true, // Optimización de datos ordenados
-            interaction: { mode: 'index', intersect: false },
-            elements: { point: { radius: 0, hitRadius: 10 } }, // Puntos invisibles (más rápido)
-            plugins: { legend: { display: false }, tooltip: { enabled: true, mode: 'index', animation: false } },
-            scales: {
-                x: { ticks: { color: '#666', maxTicksLimit: 10 }, grid: { color: '#333' } },
-                y: { ticks: { color: '#aaa' }, grid: { color: '#333' } }
-            }
-        };
-
-        // Función helper para crear gráficas rápidamente
-        function createSingleChart(id, dataKey, color, label) {
-            const ctx = document.getElementById(id);
-            if (!ctx) return;
-            
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: label,
-                        data: dataToRender.map(d => d[dataKey]),
-                        borderColor: color,
-                        backgroundColor: color + '20',
-                        fill: true,
-                        borderWidth: 2,
-                        tension: 0.2 // Menos tensión = mejor rendimiento
-                    }]
-                },
-                options: commonOptions
-            });
-        }
-
-        // Generar gráficas por variable
-        createSingleChart('altChart', 'altitud', '#8A2BE2', 'Altitud');
-        createSingleChart('velChart', 'velocidad', '#00ffcc', 'Velocidad');
-        createSingleChart('accChart', 'aceleracion', '#ff8800', 'Aceleración');
-        
-        createSingleChart('tempChart', 'temperatura', '#ff4444', 'Temperatura');
-        createSingleChart('presChart', 'presion', '#ffff00', 'Presión');
-        createSingleChart('humChart', 'humedad', '#0099ff', 'Humedad');
-        createSingleChart('co2Chart', 'co2', '#00ff00', 'CO2');
-    }
+    });
 </script>
 {% endif %}
+
 {% endblock %}
