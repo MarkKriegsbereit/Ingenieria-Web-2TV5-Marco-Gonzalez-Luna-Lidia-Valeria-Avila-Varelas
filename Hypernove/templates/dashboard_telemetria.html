@@ -4,9 +4,53 @@
 
 {% block content %}
 
-<style>
-    /* === ESTILOS === */
+<div id="loader" class="loader-overlay">
+    <div class="spinner"></div>
+    <div class="loader-text">INICIALIZANDO SISTEMAS...</div>
+</div>
 
+<style>
+    /* Bloqueo de scroll durante carga */
+    body.loading { overflow: hidden; }
+
+    .loader-overlay {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: #0a0a0a; /* Sólido inicialmente para ocultar saltos de render */
+        display: flex; /* Cambiado de none a flex para que sea lo primero en verse */
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        transition: opacity 0.8s ease, visibility 0.8s;
+    }
+
+    .spinner {
+        width: 70px;
+        height: 70px;
+        border: 6px solid rgba(138, 43, 226, 0.1);
+        border-top: 6px solid #8A2BE2;
+        border-radius: 50%;
+        animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+        margin-bottom: 25px;
+        box-shadow: 0 0 20px rgba(138, 43, 226, 0.2);
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .loader-text {
+        font-family: 'Orbitron', sans-serif;
+        color: white;
+        letter-spacing: 4px;
+        font-size: 1rem;
+        text-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+    }
+
+    /* === ESTILOS DE LA PÁGINA === */
     .control-panel {
         background-color: #1a1a1a;
         border: 1px solid #8A2BE2;
@@ -15,18 +59,11 @@
         border-radius: 10px;
         display: flex; gap: 20px; align-items: center; justify-content: center; flex-wrap: wrap;
     }
-    .control-group { display: flex; flex-direction: column; gap: 5px; }
-    .control-group label { color: #cccccc; font-size: 0.9rem; }
-    .status-bar { width: 100%; background: #000; color: #0f0; font-family: monospace; padding: 5px 10px; margin-top: 10px; border-radius: 5px; text-align: center; }
+    .status-bar { width: 100%; background: #000; color: #0f0; font-family: monospace; padding: 5px 10px; margin-top: 10px; border-radius: 5px; text-align: center; transition: 0.3s; }
+    .signal-lost { color: #ff4444 !important; animation: blink 1s infinite; }
+    @keyframes blink { 50% { opacity: 0.5; } }
 
-    /* Layout Flexible con Scroll */
-    .flex-container { 
-        display: flex; 
-        flex-wrap: wrap; 
-        justify-content: space-between; 
-        gap: 20px; 
-        margin-bottom: 30px; 
-    }
+    .flex-container { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; margin-bottom: 30px; }
     
     .item { 
         background-color: rgba(20, 20, 20, 0.85); 
@@ -41,37 +78,16 @@
         box-shadow: 0 4px 8px rgba(0,0,0,0.5);
     }
 
-    /* === AJUSTE DE TAMAÑOS (SCROLL PERMITIDO) === */
-    
-    /* Cajas de Donas (Ambientales) */
-    .donutBox { 
-        width: 23%;      
-        height: 160px;   
-        position: relative; 
-        text-align: center; 
-        margin-bottom: 10px; 
-    }
-
-    /* Cajas Inferiores (Velocidad) */
-    .chartBox { 
-        width: 24%; 
-        /* AUMENTADO A 220px para que el arco se vea completo sin cortarse */
-        height: 220px;   
-        position: relative; 
-        text-align: center; 
-        /* Quitamos overflow hidden por si acaso, aunque el padding debería bastar */
-        /* overflow: hidden; */ 
-    }
+    .donutBox { width: 23%; height: 160px; position: relative; text-align: center; margin-bottom: 10px; }
+    .chartBox { width: 24%; height: 220px; position: relative; text-align: center; }
     
     canvas { width: 100% !important; height: 100% !important; }
 
-    /* Textos */
     .coorBox { display: flex; justify-content: space-between; width: 100%; border-bottom: 1px solid #444; padding: 5px 0; font-size: 1rem; }
     h4 { color: #8A2BE2; margin-bottom: 5px; font-family: 'Orbitron'; font-size: 0.85rem; }
     h3 { color: #bbb; margin-bottom: 10px; font-family: 'Orbitron'; font-size: 1rem; }
     h2 { color: white; font-family: 'Orbitron'; font-size: 1.4rem; margin: 0;}
-    p { color: white; font-family: 'Roboto'; margin: 0;}
-
+    
     .btn-ctrl { padding: 8px 18px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; font-family: 'Orbitron'; font-size: 0.9rem;}
     .btn-connect { background-color: #007bff; }
     .btn-record { background-color: #28a745; }
@@ -79,10 +95,10 @@
     .btn-disconnect { background-color: #6c757d; }
     .btn-refresh { background-color: #8A2BE2; padding: 8px 12px; } 
     .btn-ctrl:disabled { opacity: 0.5; cursor: not-allowed; }
-    
-    select { background: #222; color: white; border: 1px solid #8A2BE2; padding: 8px; border-radius: 5px; font-size: 0.9rem; }
-    hr { margin: 15px 0; width: 100%; border-color: #444; }
 </style>
+
+
+
 
 <div class="dashboard-card" style="max-width: 100%; padding: 15px; margin-top: 80px;">
     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -91,24 +107,23 @@
     </div>
     
     <div class="control-panel" style="margin-top: 15px;">
-        <div class="control-group">
-            <label>Puerto Serial</label>
+        <div class="control-group" style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="color: #ccc; font-size: 0.9rem;">Puerto Serial</label>
             <div style="display: flex; gap: 5px;">
-                <select id="comPort" style="width: 200px;">
+                <select id="comPort" style="width: 200px; background: #222; color: white; border: 1px solid #8A2BE2; padding: 8px; border-radius: 5px;">
                     <option value="" disabled selected>Buscando...</option>
                 </select>
                 <button class="btn-ctrl btn-refresh" onclick="buscarPuertos()">🔄</button>
             </div>
         </div>
         <div class="control-group">
-            <label>&nbsp;</label>
             <button type="button" id="btnConnect" class="btn-ctrl btn-connect" onclick="conectarSerial()">CONECTAR</button>
             <button id="btnDisconnect" class="btn-ctrl btn-disconnect" onclick="desconectarSerial()" style="display:none;">DESCONECTAR</button>
         </div>
         <div style="width: 1px; height: 40px; background: #444;"></div>
-        <div class="control-group">
-            <label>Misión</label>
-            <select id="misionSelect" style="width: 200px;">
+        <div class="control-group" style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="color: #ccc; font-size: 0.9rem;">Misión</label>
+            <select id="misionSelect" style="width: 200px; background: #222; color: white; border: 1px solid #8A2BE2; padding: 8px; border-radius: 5px;">
                 <option value="" disabled selected>-- Seleccionar --</option>
                 {% for m in misiones %}
                     <option value="{{ m.ID_Mision }}">{{ m.Nombre_Mision }} ({{ m.Fecha }})</option>
@@ -116,7 +131,6 @@
             </select>
         </div>
         <div class="control-group">
-            <label>&nbsp;</label>
             <button id="btnRecord" class="btn-ctrl btn-record" onclick="iniciarGrabacion()" disabled>GRABAR</button>
             <button id="btnStopRecord" class="btn-ctrl btn-stop" onclick="detenerGrabacion()" disabled>DETENER</button>
         </div>
@@ -125,24 +139,12 @@
 
 <div class="flex-container">
     <div class="item" style="flex: 0 0 55%; display: flex; flex-direction: column;">
-        <h3 style="border-bottom: 1px solid #444; width: 100%; text-align: center; padding-bottom: 5px; margin-bottom: 0;">AMBIENTE</h3>
+        <h3 style="border-bottom: 1px solid #444; width: 100%; text-align: center; padding-bottom: 5px;">AMBIENTE</h3>
         <div style="display: flex; width: 100%; justify-content: space-between; align-items: center; flex-grow: 1;">
-            <div class="donutBox">
-                <h4>Temp(C°)</h4>
-                <canvas id="myChart5"></canvas>
-            </div>
-            <div class="donutBox">
-                <h4>Hum(%)</h4>
-                <canvas id="myChart6"></canvas>
-            </div>
-            <div class="donutBox">
-                <h4>Pres(hPa)</h4>
-                <canvas id="myChart7"></canvas>
-            </div>
-            <div class="donutBox">
-                <h4>CO2(ppm)</h4>
-                <canvas id="myChart8"></canvas>
-            </div>
+            <div class="donutBox"><h4>Temp(C°)</h4><canvas id="myChart5"></canvas></div>
+            <div class="donutBox"><h4>Hum(%)</h4><canvas id="myChart6"></canvas></div>
+            <div class="donutBox"><h4>Pres(hPa)</h4><canvas id="myChart7"></canvas></div>
+            <div class="donutBox"><h4>CO2(ppm)</h4><canvas id="myChart8"></canvas></div>
         </div>
     </div>
     
@@ -159,30 +161,16 @@
                 <div class="coorBox"><p>LONGITUD:</p><p id="plon">0.000</p></div>
             </div>
         </div>
-        <div class="lineBox" style="width:100%; height: 200px; margin-top: 5px;">
-            <canvas id="myChart9"></canvas>
-        </div>
+        <div style="width:100%; height: 200px;"><canvas id="myChart9"></canvas></div>
     </div>
 </div>
 
 <div class="flex-container">
     <div class="item" style="flex-direction: row; justify-content: space-around; padding: 10px;">
-        <div class="chartBox">
-            <h3>Velocidad (m/s)</h3>
-            <canvas id="myChart"></canvas>
-        </div>
-        <div class="chartBox">
-            <h3>Vel. Angular</h3>
-            <canvas id="myChart2"></canvas>
-        </div>
-        <div class="chartBox">
-            <h3>Aceleración</h3>
-            <canvas id="myChart3"></canvas>
-        </div>
-        <div class="chartBox">
-            <h3>Acel. Angular</h3>
-            <canvas id="myChart4"></canvas>
-        </div>
+        <div class="chartBox"><h3>Velocidad (m/s)</h3><canvas id="myChart"></canvas></div>
+        <div class="chartBox"><h3>Vel. Angular</h3><canvas id="myChart2"></canvas></div>
+        <div class="chartBox"><h3>Aceleración</h3><canvas id="myChart3"></canvas></div>
+        <div class="chartBox"><h3>Acel. Angular</h3><canvas id="myChart4"></canvas></div>
     </div>
 </div>
 
@@ -190,13 +178,12 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
 
 <script>
-    var socket = io();
-    
-    // ------------------------------------------
-    //  CONFIGURACIÓN CRÍTICA DE GRÁFICAS
-    // ------------------------------------------
+    // Inyectar clase de carga al body inmediatamente
+    document.body.classList.add('loading');
 
-    // PLUGIN 1: Texto para gráficas INFERIORES (Velocidad/Acel)
+    var socket = io();
+    let myChart, myChart2, myChart3, myChart4, myChart5, myChart6, myChart7, myChart8, myChart9;
+    // --- PLUGINS DE TEXTO ---
     const gaugeChartText = {
         id: 'gaugeChartText',
         afterDatasetsDraw(chart) {
@@ -205,20 +192,11 @@
             const score = data.datasets[0].data[0];
             const x = chart.getDatasetMeta(0).data[0].x;
             const y = chart.getDatasetMeta(0).data[0].y;
-            
-            ctx.font = 'bold 20px Orbitron'; 
-            ctx.fillStyle = 'white';
-            ctx.textAlign = 'center';
-            
-            // CORRECCIÓN CLAVE:
-            // "y - 20" mueve el texto HACIA ARRIBA, adentro del arco.
-            // Antes "y + 5" lo ponía abajo y se salía de la caja.
-            ctx.fillText(score, x, y - 20); 
-            ctx.restore();
+            ctx.font = 'bold 20px Orbitron'; ctx.fillStyle = 'white'; ctx.textAlign = 'center';
+            ctx.fillText(score, x, y - 20); ctx.restore();
         }
     };
 
-    // PLUGIN 2: Texto para gráficas SUPERIORES (Ambientales)
     const gaugeChartText2 = {
         id: 'gaugeChartText2',
         afterDatasetsDraw(chart) {
@@ -227,236 +205,194 @@
             const score = data.datasets[0].data[0];
             const x = chart.getDatasetMeta(0).data[0].x;
             const y = chart.getDatasetMeta(0).data[0].y;
-            
-            ctx.font = 'bold 16px Orbitron'; 
-            ctx.fillStyle = '#ccc';
-            ctx.textAlign = 'center';
-            // Aquí "y + 5" está bien porque es un círculo completo
-            ctx.fillText(score, x, y + 5);
-            ctx.restore();
+            ctx.font = 'bold 16px Orbitron'; ctx.fillStyle = '#ccc'; ctx.textAlign = 'center';
+            ctx.fillText(score, x, y + 5); ctx.restore();
         }
     };
 
-    const ctxTemp = document.createElement('canvas').getContext('2d');
-    const gradient = ctxTemp.createLinearGradient(0, 0, 100, 0);
-    gradient.addColorStop(0, '#E6E6FA');
-    gradient.addColorStop(0.5, '#8A2BE2');
-    gradient.addColorStop(1, '#4B0082');
-
+    // --- FUNCIONES DE GRÁFICAS ---
     function createData(label, value, total, circumference, rotation) {
+        const ctxTemp = document.createElement('canvas').getContext('2d');
+        const gradient = ctxTemp.createLinearGradient(0, 0, 100, 0);
+        gradient.addColorStop(0, '#E6E6FA'); gradient.addColorStop(0.5, '#8A2BE2'); gradient.addColorStop(1, '#4B0082');
         return {
             labels: [label, 'Empty'],
             datasets: [{
                 data: [value, total - value],
                 backgroundColor: [gradient, 'rgba(255, 255, 255, 0.1)'],
-                borderWidth: 0,
-                cutout: '75%', 
-                circumference: circumference,
-                rotation: rotation,
-                borderRadius: 5
+                borderWidth: 0, cutout: '75%', circumference: circumference, rotation: rotation, borderRadius: 5
             }]
         };
     }
 
     function config(data, plugin) {
         return {
-            type: 'doughnut',
-            data: data,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
+            type: 'doughnut', data: data,
+            options: { 
+                responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
                 plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                animation: { duration: 0 },
-                // CORRECCIÓN CLAVE: Padding para evitar recortes en los bordes
-                layout: { padding: 10 } 
+                layout: { padding: 10 }
             },
             plugins: [plugin]
         };
     }
 
-    // INICIALIZACIÓN
-    // Gráficas Inferiores (Semicírculos)
-    const myChart  = new Chart(document.getElementById('myChart'),  config(createData('Speed', 0, 100, 180, 270), gaugeChartText));
-    const myChart2 = new Chart(document.getElementById('myChart2'), config(createData('AngSpeed', 0, 100, 180, 270), gaugeChartText));
-    const myChart3 = new Chart(document.getElementById('myChart3'), config(createData('Accel', 0, 100, 180, 270), gaugeChartText));
-    const myChart4 = new Chart(document.getElementById('myChart4'), config(createData('AngAccel', 0, 100, 180, 270), gaugeChartText));
+    function inicializarGraficas() {
+        myChart  = new Chart(document.getElementById('myChart'),  config(createData('Speed', 0, 100, 180, 270), gaugeChartText));
+        myChart2 = new Chart(document.getElementById('myChart2'), config(createData('AngSpeed', 0, 100, 180, 270), gaugeChartText));
+        myChart3 = new Chart(document.getElementById('myChart3'), config(createData('Accel', 0, 100, 180, 270), gaugeChartText));
+        myChart4 = new Chart(document.getElementById('myChart4'), config(createData('AngAccel', 0, 100, 180, 270), gaugeChartText));
+        myChart5 = new Chart(document.getElementById('myChart5'), config(createData('Temp', 0, 50, 360, 0), gaugeChartText2));
+        myChart6 = new Chart(document.getElementById('myChart6'), config(createData('Hum', 0, 100, 360, 0), gaugeChartText2));
+        myChart7 = new Chart(document.getElementById('myChart7'), config(createData('Press', 0, 1100, 360, 0), gaugeChartText2));
+        myChart8 = new Chart(document.getElementById('myChart8'), config(createData('CO2', 0, 1000, 360, 0), gaugeChartText2));
+        myChart9 = new Chart(document.getElementById('myChart9'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Altitud', data: [], borderColor: '#8A2BE2', backgroundColor: 'rgba(138, 43, 226, 0.2)', borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.3 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { ticks: { color: '#ccc' }, grid: { color: '#333' } } }, plugins: { legend: { display: false } }, animation: { duration: 0 } }
+        });
+    }
 
-    // Gráficas Ambientales (Círculos)
-    const myChart5 = new Chart(document.getElementById('myChart5'), config(createData('Temp', 0, 50, 360, 0), gaugeChartText2));
-    const myChart6 = new Chart(document.getElementById('myChart6'), config(createData('Hum', 0, 100, 360, 0), gaugeChartText2));
-    const myChart7 = new Chart(document.getElementById('myChart7'), config(createData('Press', 0, 1100, 360, 0), gaugeChartText2));
-    const myChart8 = new Chart(document.getElementById('myChart8'), config(createData('CO2', 0, 1000, 360, 0), gaugeChartText2));
-
-    // Gráfica Lineal
-    const myChart9 = new Chart(document.getElementById('myChart9'), {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Altitud',
-                data: [],
-                borderColor: '#8A2BE2',
-                backgroundColor: 'rgba(138, 43, 226, 0.2)',
-                borderWidth: 1.5,
-                pointRadius: 0,
-                fill: true,
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: { display: false },
-                y: { ticks: { color: '#ccc', font: {size: 10} }, grid: { color: '#333' } }
-            },
-            plugins: { legend: { display: false } },
-            animation: { duration: 0 }
-        }
+    // --- INICIALIZACIÓN CONTROLADA ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const loader = document.getElementById('loader');
+        setTimeout(() => {
+            inicializarGraficas();
+            buscarPuertos();
+            loader.style.opacity = '0';
+            setTimeout(() => { loader.style.visibility = 'hidden'; }, 500);
+        }, 800);
     });
 
-    // LÓGICA Y SOCKETS
-    document.addEventListener('DOMContentLoaded', function() { buscarPuertos(); });
-
-    function buscarPuertos() {
-        const select = document.getElementById('comPort');
-        select.innerHTML = '<option>Buscando...</option>';
-        socket.emit('buscar_puertos');
-    }
+    // --- LÓGICA DE SOCKETS Y CONTROL ---
+    function buscarPuertos() { socket.emit('buscar_puertos'); }
     socket.on('lista_puertos', function(puertos) {
         const select = document.getElementById('comPort');
-        select.innerHTML = ''; 
-        if (puertos.length === 0) {
-            let opt = document.createElement('option'); opt.text = "No se encontraron"; select.add(opt);
-        } else {
-            puertos.forEach(p => {
-                let opt = document.createElement('option'); opt.value = p.device; opt.text = p.desc; select.add(opt);
-            });
-        }
+        select.innerHTML = puertos.length === 0 ? '<option>No se encontraron</option>' : '';
+        puertos.forEach(p => { let opt = document.createElement('option'); opt.value = p.device; opt.text = p.desc; select.add(opt); });
     });
+
     function conectarSerial() {
         const puerto = document.getElementById('comPort').value;
-        if(!puerto || puerto.includes("No se encontraron")) { alert("Seleccione un puerto válido"); return; }
+        if(!puerto) return;
         socket.emit('conectar_puerto', { puerto: puerto });
         document.getElementById('btnConnect').style.display = 'none';
         document.getElementById('btnDisconnect').style.display = 'inline-block';
     }
+
     function desconectarSerial() {
-        socket.emit('desconectar_puerto'); detenerGrabacion();
+        socket.emit('desconectar_puerto');
         document.getElementById('btnConnect').style.display = 'inline-block';
         document.getElementById('btnDisconnect').style.display = 'none';
+        detenerGrabacion();
     }
+
     function iniciarGrabacion() {
-        const misionId = document.getElementById('misionSelect').value;
-        if(!misionId) { alert("Selecciona una Misión"); return; }
-        socket.emit('iniciar_grabacion', { mision_id: misionId });
+        const mId = document.getElementById('misionSelect').value;
+        if(!mId) return alert("Selecciona una Misión");
+        socket.emit('iniciar_grabacion', { mision_id: mId });
         document.getElementById('btnRecord').disabled = true;
         document.getElementById('btnStopRecord').disabled = false;
-        document.getElementById('misionSelect').disabled = true;
     }
+
     function detenerGrabacion() {
         socket.emit('detener_grabacion');
         document.getElementById('btnRecord').disabled = false;
         document.getElementById('btnStopRecord').disabled = true;
-        document.getElementById('misionSelect').disabled = false;
-    }
-    socket.on('status_msg', function(data) {
-        const barra = document.getElementById('statusMsg');
-        barra.innerText = ">> " + data.msg;
-        if(data.msg.includes("Conectado")) { document.getElementById('btnRecord').disabled = false; }
-    });
-
-    // ACTUALIZACIÓN DATOS
-    function updateDonut(chart, value, total) {
-        chart.data.datasets[0].data = [value, total - value];
-        chart.update('none');
-    }
-    function updateLine(chart, label, value) {
-        if (chart.data.labels.length > 50) {
-            chart.data.labels.shift(); chart.data.datasets[0].data.shift();
-        }
-        chart.data.labels.push(label); chart.data.datasets[0].data.push(value);
-        chart.update('none');
     }
 
-
-// --- LÓGICA DE ROBUSTEZ Y SOCKETS ---
-    
-    // 1. Escuchar fin de transmisión forzada (Timeout o Desconexión de Agente)
+    // --- ROBUSTEZ: MANEJO DE DESCONEXIÓN ---
     socket.on('stream_ended', function(data) {
         const barra = document.getElementById('statusMsg');
         barra.innerText = ">> " + (data.reason || "Transmisión finalizada");
-        barra.style.color = "#ff4444"; // Cambiar a rojo por error
-
-        // Resetear UI
-        document.getElementById('btnConnect').style.display = 'inline-block';
-        document.getElementById('btnDisconnect').style.display = 'none';
-        detenerGrabacion();
-        
-        // Resetear todas las gráficas a 0 para evitar confusión visual
+        barra.classList.add('signal-lost');
+        desconectarSerial();
         resetCharts();
     });
+
+
+
+    // --- NUEVA LÓGICA DE INICIALIZACIÓN ROBUSTA ---
+    window.onload = function() {
+        const loader = document.getElementById('loader');
+        
+        // Damos un pequeño respiro para que el navegador procese el renderizado del loader
+        setTimeout(() => {
+            try {
+                inicializarGraficas();
+                buscarPuertos();
+                console.log("✅ Gráficas e interfaces inicializadas");
+            } catch (err) {
+                console.error("❌ Error durante inicialización:", err);
+            } finally {
+                // Finalizamos la carga
+                setTimeout(() => {
+                    loader.style.opacity = '0';
+                    loader.style.visibility = 'hidden';
+                    document.body.classList.remove('loading');
+                }, 1000); // Tiempo extra de cortesía para ver el loader finalizando
+            }
+        }, 500);
+    };
+
+
+
+
 
     function resetCharts() {
         const charts = [myChart, myChart2, myChart3, myChart4, myChart5, myChart6, myChart7, myChart8];
         charts.forEach(c => {
-            c.data.datasets[0].data = [0, 100]; // Reset a cero
-            c.update('none');
+            if(c) {
+                c.data.datasets[0].data = [0, 100]; 
+                c.update('none');
+            }
         });
-        // Limpiar gráfica de altitud
-        myChart9.data.labels = [];
-        myChart9.data.datasets[0].data = [];
-        myChart9.update();
+        if(myChart9) {
+            myChart9.data.labels = []; 
+            myChart9.data.datasets[0].data = []; 
+            myChart9.update();
+        }
     }
 
-    // 2. Manejo de Telemetría con Try/Catch (Evita que la página se congele)
     socket.on('telemetria', function(trama) {
         try {
-            if (!trama) return;
+            document.getElementById('statusMsg').classList.remove('signal-lost');
+            document.getElementById('statusMsg').innerText = ">> Recibiendo datos...";
 
-            // Actualización de Textos
-            if(trama.latitud !== undefined) document.getElementById('plat').textContent = trama.latitud.toFixed(5);
-            if(trama.longitud !== undefined) document.getElementById('plon').textContent = trama.longitud.toFixed(5);
-            if(trama.apogeo !== undefined) document.getElementById('p-apo').textContent = trama.apogeo + ' m';
+            if(trama.latitud) document.getElementById('plat').textContent = trama.latitud.toFixed(5);
+            if(trama.longitud) document.getElementById('plon').textContent = trama.longitud.toFixed(5);
+            if(trama.apogeo) document.getElementById('p-apo').textContent = trama.apogeo + ' m';
 
-            // Eventos
-            const pArr = document.getElementById('p-arr');
-            if(trama.evento_1 !== undefined) {
-                pArr.textContent = trama.evento_1 ? "ACTIVO" : "---";
-                pArr.style.color = trama.evento_1 ? "#00FF00" : "#FFFFFF"; 
-            }
-            const pMai = document.getElementById('p-mai');
-            if(trama.evento_2 !== undefined) {
-                pMai.textContent = trama.evento_2 ? "ACTIVO" : "---";
-                pMai.style.color = trama.evento_2 ? "#FF4500" : "#FFFFFF";
-            }
+            document.getElementById('p-arr').textContent = trama.evento_1 ? "ACTIVO" : "---";
+            document.getElementById('p-arr').style.color = trama.evento_1 ? "#00FF00" : "#FFFFFF";
+            document.getElementById('p-mai').textContent = trama.evento_2 ? "ACTIVO" : "---";
+            document.getElementById('p-mai').style.color = trama.evento_2 ? "#FF4500" : "#FFFFFF";
 
-            // Actualización de Gráficas (Donas e Inferiores)
-            if(trama.velocidad !== undefined) updateDonut(myChart, trama.velocidad, 100);
-            if(trama.velocidad_ang !== undefined) updateDonut(myChart2, trama.velocidad_ang, 100);
-            if(trama.aceleracion !== undefined) updateDonut(myChart3, trama.aceleracion, 100);
-            if(trama.acc_ang !== undefined) updateDonut(myChart4, trama.acc_ang, 100);
-            
-            if(trama.temperatura !== undefined) updateDonut(myChart5, trama.temperatura, 50);
-            if(trama.humedad !== undefined) updateDonut(myChart6, trama.humedad, 100);
-            if(trama.presion !== undefined) updateDonut(myChart7, trama.presion, 1200);
-            if(trama.co2 !== undefined) updateDonut(myChart8, trama.co2, 1000);
+            updateDonut(myChart, trama.velocidad, 100);
+            updateDonut(myChart2, trama.velocidad_ang, 100);
+            updateDonut(myChart3, trama.aceleracion, 100);
+            updateDonut(myChart4, trama.acc_ang, 100);
+            updateDonut(myChart5, trama.temperatura, 50);
+            updateDonut(myChart6, trama.humedad, 100);
+            updateDonut(myChart7, trama.presion, 1200);
+            updateDonut(myChart8, trama.co2, 1000);
 
-            // Línea de Altitud
-            if(trama.altitud !== undefined) {
-                const timeLabel = new Date().toLocaleTimeString().split(' ')[0];
-                updateLine(myChart9, timeLabel, trama.altitud);
-            }
+            const time = new Date().toLocaleTimeString().split(' ')[0];
+            if (myChart9.data.labels.length > 50) { myChart9.data.labels.shift(); myChart9.data.datasets[0].data.shift(); }
+            myChart9.data.labels.push(time); myChart9.data.datasets[0].data.push(trama.altitud);
+            myChart9.update('none');
 
-        } catch (error) {
-            console.error("Fallo crítico al procesar telemetría:", error);
-            // Si el error es persistente, podríamos notificar al usuario en la barra
-            document.getElementById('statusMsg').innerText = ">> Error de procesamiento de datos";
-        }
+        } catch (e) { console.error("Error en telemetría:", e); }
+    });
 
+    function updateDonut(chart, val, total) {
+        chart.data.datasets[0].data = [val, total - val];
+        chart.update('none');
+    }
 
-    // Mantener tus funciones de control (conectarSerial, buscarPuertos, etc.) igual...
-
+    socket.on('status_msg', function(data) {
+        document.getElementById('statusMsg').innerText = ">> " + data.msg;
+        if(data.msg.includes("Conectado")) document.getElementById('btnRecord').disabled = false;
     });
 </script>
 {% endblock %}
