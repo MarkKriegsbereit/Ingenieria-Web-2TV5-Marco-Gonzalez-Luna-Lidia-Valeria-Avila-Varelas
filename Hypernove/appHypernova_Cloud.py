@@ -170,25 +170,6 @@ class BitacoraDB(db.Model):
     Usuario_Responsable = db.Column(db.String(100))
 
 # ================== TAREA DE FONDO ==================
-# def check_heartbeats():
-#     while True:
-#         eventlet.sleep(5)
-#         now = datetime.now()
-#         for mid in list(active_streams.keys()):
-#             stream = active_streams[mid]
-#             last_beat = stream.get('last_heartbeat')
-            
-#             if last_beat and (now - last_beat).total_seconds() > 20:
-#                 print(f"⚠️ Misión {mid}: Timeout de Agente. Cerrando.")
-#                 socketio.emit('status_msg', {'msg': '⚠️ SEÑAL PERDIDA (Timeout)'}, to=mid)
-#                 socketio.emit('stream_ended', {'force_reset': True}, to=mid)
-#                 if mid in active_streams:
-#                     del active_streams[mid]
-#                 # Corrección: usar server.emit para broadcast global sin error
-#                 socketio.server.emit('mission_stopped', {'mission_id': mid}) 
-
-# socketio.start_background_task(check_heartbeats)
-
 def check_heartbeats():
     while True:
         eventlet.sleep(5)
@@ -197,14 +178,28 @@ def check_heartbeats():
             stream = active_streams[mid]
             last_beat = stream.get('last_heartbeat')
             
-            # Aumentamos a 45 segundos para dar margen al Bluetooth del ESP32 tanto en Win como en Mac
-            if last_beat and (now - last_beat).total_seconds() > 45:
-                print(f"⚠️ Misión {mid}: Timeout de Agente. Cerrando.")
-                socketio.emit('status_msg', {'msg': '⚠️ SEÑAL PERDIDA (Timeout)'}, to=mid)
-                socketio.emit('stream_ended', {'force_reset': True}, to=mid)
+            # Si han pasado más de 15 segundos sin "ingest_telemetry"
+            if last_beat and (now - last_beat).total_seconds() > 15:
+                print(f"⚠️ Misión {mid}: CONEXIÓN PERDIDA. Limpiando recursos.")
+                
+                # 1. Notificar a los espectadores de la sala
+                socketio.emit('status_msg', {
+                    'msg': '⚠️ ERROR: Se perdió la conexión con el vehículo (Timeout)'
+                }, to=mid)
+                
+                # 2. Ordenar al cliente (frontend) que limpie los gráficos
+                socketio.emit('stream_ended', {
+                    'force_reset': True,
+                    'reason': 'Lost Connection'
+                }, to=mid)
+                
+                # 3. Eliminar de la lista de streams activos para que no aparezca en catálogo
                 if mid in active_streams:
                     del active_streams[mid]
+                
+                # 4. Notificar globalmente que la misión ya no está disponible
                 socketio.server.emit('mission_stopped', {'mission_id': mid})
+
 
 def parse_data(trama_str):
     try:
@@ -960,10 +955,18 @@ def handle_stop_command(data):
 def handle_ingest(data):
     mid = str(data.get('mission_id'))
     if mid not in active_streams:
+        # Si llega telemetría de una misión que ya cerramos, ordenamos detener al agente
         emit('server_command_stop', {}, to=request.sid)
         return
+    
+    # Actualizamos el pulso de vida
     active_streams[mid]['last_heartbeat'] = datetime.now()
+    # Guardamos el SID del agente si no lo teníamos (doble seguridad)
+    active_streams[mid]['agent_sid'] = request.sid 
+    
     socketio.emit('telemetria', data.get('payload'), to=mid)
+    
+    # Guardado en base de datos (se mantiene igual)
     with app.app_context():
         try:
             db.session.add(Trama_CanSat(Trama=data.get('raw_line'), FK_ID_Mision=mid, FK_ID_Usuario=1))
@@ -984,6 +987,24 @@ def handle_agent_ports(data):
 def handle_agent_msg(data):
     mid = str(data.get('mission_id'))
     emit('status_msg', {'msg': data.get('msg')}, to=mid)
+
+
+@socketio.on('disconnect')
+def on_disconnect():
+    sid = request.sid
+    # Buscamos si el SID que se desconectó era un agente de alguna misión
+    for mid in list(active_streams.keys()):
+        if active_streams[mid].get('agent_sid') == sid:
+            print(f"❌ Agente de misión {mid} se desconectó abruptamente.")
+            
+            # Notificar error inmediato a la sala
+            socketio.emit('status_msg', {'msg': '❌ CONEXIÓN INTERRUMPIDA (Agente Offline)'}, to=mid)
+            socketio.emit('stream_ended', {'force_reset': True}, to=mid)
+            
+            # Limpiar stream
+            del active_streams[mid]
+            socketio.server.emit('mission_stopped', {'mission_id': mid})
+            break
 
 if __name__ == '__main__':
     with app.app_context(): db.create_all()
