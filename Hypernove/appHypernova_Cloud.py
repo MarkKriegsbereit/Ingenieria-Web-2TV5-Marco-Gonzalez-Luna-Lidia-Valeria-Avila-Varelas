@@ -514,38 +514,47 @@ def forgot_password():
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
+        # 1. Verificar el token primero
         email = s.loads(token, salt='recuperacion-salt', max_age=3600)
-    except (SignatureExpired, BadSignature):
+    except Exception:
         flash('El enlace ha expirado o no es válido.', 'danger')
         return redirect(url_for('forgot_password'))
 
+    # 2. Buscar al usuario
     user = Usuario.query.filter_by(email=email).first()
     if not user:
         flash('Usuario no encontrado.', 'danger')
         return redirect(url_for('forgot_password'))
 
+    # 3. Solo procesar si es POST
     if request.method == 'POST':
-        new_password = request.form['password']
+        # Definimos las variables dentro del bloque POST
+        new_password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
 
-    if new_password != confirm_password:
+        # Ahora las comparaciones están seguras porque las variables existen
+        if not new_password or not confirm_password:
+            flash('Por favor, rellena todos los campos.', 'danger')
+            return render_template('reset_password.html', token=token)
+
+        if new_password != confirm_password:
             flash('Las contraseñas no coinciden.', 'danger')
             return render_template('reset_password.html', token=token)
         
-        # Regex idéntica a la de JS
-    regex_seguridad = r"^(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
-        
-    if not re.match(regex_seguridad, new_password):
-            flash('La contraseña debe tener al menos 8 caracteres, un número y un símbolo especial.', 'danger')
+        # Validación de seguridad (Regex)
+        regex_seguridad = r"^(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>]).{8,}$"
+        if not re.match(regex_seguridad, new_password):
+            flash('La contraseña debe tener al menos 8 caracteres, un número y un símbolo.', 'danger')
             return render_template('reset_password.html', token=token)
         
-# Guardar contraseña
-    user.Password = generate_password_hash(new_password)
-    db.session.commit()
+        # Si todo está bien, guardar
+        user.Password = generate_password_hash(new_password)
+        db.session.commit()
         
-    flash('Tu contraseña ha sido restablecida con éxito.', 'success')
-    return redirect(url_for('login'))
+        flash('Tu contraseña ha sido restablecida con éxito.', 'success')
+        return redirect(url_for('login'))
 
+    # 4. Si es GET, simplemente mostrar la página
     return render_template('reset_password.html', token=token)
 
 
