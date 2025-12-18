@@ -24,11 +24,11 @@
         </div>
         <div class="form-group">
             <label>Fecha de Lanzamiento</label>
-            <input type="date" name="fecha" value="{{ mision.Fecha if mision else '' }}">
+            <input type="date" name="fecha" value="{{ mision.Fecha if mision else '' }}" required >
         </div>
         <div class="form-group">
             <label>Lugar / Zona</label>
-            <input type="text" name="lugar" value="{{ mision.Lugar if mision else '' }}" placeholder="Ej. Desierto de Sonora">
+            <input type="text" name="lugar" value="{{ mision.Lugar if mision else '' }}" required placeholder="Ej. Desierto de Sonora" >
         </div>
         <div class="form-group">
             <label>Vehículo Asignado</label>

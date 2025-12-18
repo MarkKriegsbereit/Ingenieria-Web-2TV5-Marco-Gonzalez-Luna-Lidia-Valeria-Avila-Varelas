@@ -170,6 +170,25 @@ class BitacoraDB(db.Model):
     Usuario_Responsable = db.Column(db.String(100))
 
 # ================== TAREA DE FONDO ==================
+# def check_heartbeats():
+#     while True:
+#         eventlet.sleep(5)
+#         now = datetime.now()
+#         for mid in list(active_streams.keys()):
+#             stream = active_streams[mid]
+#             last_beat = stream.get('last_heartbeat')
+            
+#             if last_beat and (now - last_beat).total_seconds() > 20:
+#                 print(f"⚠️ Misión {mid}: Timeout de Agente. Cerrando.")
+#                 socketio.emit('status_msg', {'msg': '⚠️ SEÑAL PERDIDA (Timeout)'}, to=mid)
+#                 socketio.emit('stream_ended', {'force_reset': True}, to=mid)
+#                 if mid in active_streams:
+#                     del active_streams[mid]
+#                 # Corrección: usar server.emit para broadcast global sin error
+#                 socketio.server.emit('mission_stopped', {'mission_id': mid}) 
+
+# socketio.start_background_task(check_heartbeats)
+
 def check_heartbeats():
     while True:
         eventlet.sleep(5)
@@ -178,16 +197,14 @@ def check_heartbeats():
             stream = active_streams[mid]
             last_beat = stream.get('last_heartbeat')
             
-            if last_beat and (now - last_beat).total_seconds() > 20:
+            # Aumentamos a 45 segundos para dar margen al Bluetooth del ESP32 tanto en Win como en Mac
+            if last_beat and (now - last_beat).total_seconds() > 45:
                 print(f"⚠️ Misión {mid}: Timeout de Agente. Cerrando.")
                 socketio.emit('status_msg', {'msg': '⚠️ SEÑAL PERDIDA (Timeout)'}, to=mid)
                 socketio.emit('stream_ended', {'force_reset': True}, to=mid)
                 if mid in active_streams:
                     del active_streams[mid]
-                # Corrección: usar server.emit para broadcast global sin error
-                socketio.server.emit('mission_stopped', {'mission_id': mid}) 
-
-socketio.start_background_task(check_heartbeats)
+                socketio.server.emit('mission_stopped', {'mission_id': mid})
 
 def parse_data(trama_str):
     try:
@@ -409,14 +426,39 @@ def invitado_dashboard():
 
     return render_template("invitado.html", usuario=u)
 
+# @app.route('/register', methods=['GET', 'POST'])
+# def register():
+#     if request.method == 'POST':
+#         n, e, p = request.form.get('username'), request.form.get('email'), request.form.get('password')
+#         if not Usuario.query.filter_by(email=e).first():
+#             nu = Usuario(Nombre=n, email=e, Password=generate_password_hash(p), Rol='invitado', oauth_provider='local')
+#             db.session.add(nu); db.session.commit()
+#             return redirect(url_for('login'))
+#     return render_template("register.html")
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        n, e, p = request.form.get('username'), request.form.get('email'), request.form.get('password')
+        n = request.form.get('username')
+        e = request.form.get('email')
+        p = request.form.get('password')
+        p2 = request.form.get('password2')
+
+        # 1. Validar que las contraseñas coincidan
+        if p != p2:
+            return render_template("register.html", mensaje="Las contraseñas no coinciden")
+
+        # 2. Validar complejidad (8 caracteres, 1 número, 1 símbolo)
+        if len(p) < 8 or not re.search(r"\d", p) or not re.search(r"[ !@#$%^&*(),.?\":{}|<>]", p):
+            return render_template("register.html", mensaje="La contraseña no cumple con los requisitos de seguridad")
+
+        # 3. Guardar si todo está bien
         if not Usuario.query.filter_by(email=e).first():
             nu = Usuario(Nombre=n, email=e, Password=generate_password_hash(p), Rol='invitado', oauth_provider='local')
-            db.session.add(nu); db.session.commit()
+            db.session.add(nu)
+            db.session.commit()
             return redirect(url_for('login'))
+            
     return render_template("register.html")
 
 # ================== RECUPERACIÓN DE CONTRASEÑA ==================
@@ -468,6 +510,7 @@ def forgot_password():
     return render_template('forgot_password.html')
 
 
+
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     try:
@@ -506,6 +549,8 @@ def reset_password(token):
         return redirect(url_for('login'))
 
     return render_template('reset_password.html', token=token)
+
+
 @app.route('/admin/usuarios')
 @login_required
 @staff_required
