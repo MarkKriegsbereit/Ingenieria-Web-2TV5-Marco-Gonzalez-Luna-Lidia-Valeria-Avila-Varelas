@@ -75,16 +75,11 @@
 <div class="form-card">
     <h2>{{ 'REGISTRAR' if accion == 'crear' else 'EDITAR' }} USUARIO</h2>
 
-    {# Bloque de Mensajes Flash (Error de email duplicado, etc) #}
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="{{ 'server-alert' if category == 'danger' else 'success-alert' }}">
-                    {{ message }}
-                </div>
-            {% endfor %}
+    <div id="mensaje-frontend">
+        {% if error_email %}
+            <div class="server-alert">Error: El correo electrónico ya está registrado.</div>
         {% endif %}
-    {% endwith %}
+    </div>
 
     <form method="POST" id="usuarioForm">
         <div class="form-group">
@@ -147,53 +142,50 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const accion = "{{ accion }}";
-    if (accion !== 'crear') return;
+    const form = document.getElementById('usuarioForm');
+    const emailInput = document.querySelector('input[name="email"]');
+    const passwordInput = document.getElementById('password');
+    const mensajeContainer = document.getElementById('mensaje-frontend');
 
-    const password = document.getElementById('password');
-    const confirm = document.getElementById('confirm_password');
-    const submitBtn = document.getElementById('btnSubmit');
-
-    const reqLongitud = document.getElementById('req-longitud');
-    const reqNumero = document.getElementById('req-numero');
-    const reqSimbolo = document.getElementById('req-simbolo');
-    const msgCoincide = document.getElementById('msg-coincide');
-
-    const regexNumero = /\d/;
-    const regexSimbolo = /[!@#$%^&*(),.?":{}|<>]/;
-
-    function validar() {
-        const pVal = password.value;
-        const cVal = confirm.value;
-
-        const tieneLongitud = pVal.length >= 8;
-        const tieneNumero = regexNumero.test(pVal);
-        const tieneSimbolo = regexSimbolo.test(pVal);
-        const coinciden = (pVal === cVal && pVal !== "");
-
-        actualizarItem(reqLongitud, tieneLongitud);
-        actualizarItem(reqNumero, tieneNumero);
-        actualizarItem(reqSimbolo, tieneSimbolo);
-        actualizarItem(msgCoincide, coinciden);
-
-        password.className = pVal === "" ? "" : (tieneLongitud && tieneNumero && tieneSimbolo ? "input-success" : "input-error");
-        confirm.className = cVal === "" ? "" : (coinciden ? "input-success" : "input-error");
-
-        submitBtn.disabled = !(tieneLongitud && tieneNumero && tieneSimbolo && coinciden);
+    // Función para crear la alerta con contorno
+    function mostrarError(mensaje) {
+        mensajeContainer.innerHTML = `<div class="server-alert">${mensaje}</div>`;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function actualizarItem(el, cumple) {
-        if (cumple) {
-            el.classList.add('cumplido');
-            el.textContent = el.textContent.replace('○', '●');
-        } else {
-            el.classList.remove('cumplido');
-            el.textContent = el.textContent.replace('●', '○');
+    // 1. Limpiar mensajes cuando el usuario empiece a corregir
+    const inputs = form.querySelectorAll('input');
+    inputs.forEach(input => {
+        input.addEventListener('input', () => {
+            mensajeContainer.innerHTML = ''; // Borra el mensaje de error
+            input.classList.remove('input-error');
+        });
+    });
+
+    // 2. Validación antes de enviar (Frontend)
+    form.addEventListener('submit', function(e) {
+        const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.(com|net|org|edu|gov|mx|io|app)$/;
+        const passRegex = /^(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+
+        let errorActivo = false;
+
+        // Validar Email
+        if (!emailRegex.test(emailInput.value)) {
+            mostrarError("Error: Formato de correo inválido o extensión no permitida.");
+            emailInput.classList.add('input-error');
+            errorActivo = true;
+        } 
+        // Validar Password (solo si existe el campo en modo crear)
+        else if (passwordInput && !passRegex.test(passwordInput.value)) {
+            mostrarError("Error: La contraseña debe tener 8 caracteres, un número y un símbolo.");
+            passwordInput.classList.add('input-error');
+            errorActivo = true;
         }
-    }
 
-    password.addEventListener('input', validar);
-    confirm.addEventListener('input', validar);
+        if (errorActivo) {
+            e.preventDefault(); // Detiene el envío
+        }
+    });
 });
 </script>
 {% endblock %}
