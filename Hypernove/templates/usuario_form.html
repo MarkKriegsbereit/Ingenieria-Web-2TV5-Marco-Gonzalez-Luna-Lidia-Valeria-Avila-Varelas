@@ -9,15 +9,24 @@
     label { display: block; color: #aaa; margin-bottom: 8px; font-size: 0.9rem; }
     input, select { width: 100%; padding: 12px; background: #0a0a0a; border: 1px solid #444; color: white; border-radius: 5px; transition: 0.3s; }
     input:focus, select:focus { border-color: #00ccff; outline: none; box-shadow: 0 0 10px rgba(0, 204, 255, 0.2); }
+    
+    /* Estilos para Validación */
+    .politicas-lista { list-style: none; padding: 0; margin: 10px 0; }
+    .politica-item { font-size: 0.8rem; color: #555; margin-bottom: 4px; transition: 0.3s; }
+    .politica-item.cumplido { color: #8bff8b; }
+    .input-error { border-color: #dc3545 !important; }
+    .input-success { border-color: #28a745 !important; }
+
     .btn-save { width: 100%; padding: 15px; background: linear-gradient(45deg, #00ccff, #0066ff); color: white; border: none; border-radius: 5px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-    .btn-save:hover { filter: brightness(1.2); transform: scale(1.02); }
+    .btn-save:hover:not(:disabled) { filter: brightness(1.2); transform: scale(1.02); }
+    .btn-save:disabled { background: #333; cursor: not-allowed; filter: grayscale(1); opacity: 0.5; }
     .btn-cancel { display: block; text-align: center; margin-top: 15px; color: #666; text-decoration: none; }
     .btn-cancel:hover { color: white; }
 </style>
 
 <div class="form-card">
     <h2>{{ 'REGISTRAR' if accion == 'crear' else 'EDITAR' }} USUARIO</h2>
-    <form method="POST">
+    <form method="POST" id="usuarioForm">
         <div class="form-group">
             <label>Nombre Completo</label>
             <input type="text" name="nombre" value="{{ usuario.Nombre if usuario else '' }}" required autofocus>
@@ -25,13 +34,7 @@
         
         <div class="form-group">
             <label>Correo Electrónico</label>
-            <input type="email" 
-                   name="email" 
-                   value="{{ usuario.email if usuario else '' }}" 
-                   required 
-                   placeholder="ejemplo@dominio.com"
-                   pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$"
-                   title="Por favor, ingresa un correo válido con una extensión real (ej: .com, .net, .mx)">
+            <input type="email" name="email" value="{{ usuario.email if usuario else '' }}" required placeholder="ejemplo@dominio.com">
         </div>
 
         <div class="form-group">
@@ -43,11 +46,21 @@
             </select>
         </div>
 
-       {% if accion == 'crear' %}
+        {% if accion == 'crear' %}
         <div class="form-group">
             <label>Contraseña</label>
-            <input type="password" name="password" required>
-            <small style="color: #666;">Mínimo 8 caracteres, un número y un símbolo.</small>
+            <input type="password" name="password" id="password" required>
+            <ul class="politicas-lista">
+                <li id="req-longitud" class="politica-item">○ Mínimo 8 caracteres</li>
+                <li id="req-numero" class="politica-item">○ Al menos un número</li>
+                <li id="req-simbolo" class="politica-item">○ Al menos un símbolo (!@#$...)</li>
+            </ul>
+        </div>
+
+        <div class="form-group">
+            <label>Confirmar Contraseña</label>
+            <input type="password" id="confirm_password" required>
+            <p id="msg-coincide" style="font-size: 0.8rem; margin-top: 5px; color: #555;">○ Las contraseñas deben coincidir</p>
         </div>
         {% else %}
         <div class="form-group" style="border-top: 1px solid #333; padding-top: 20px; margin-top: 20px;">
@@ -62,8 +75,64 @@
         </div>
         {% endif %}
 
-        <button type="submit" class="btn-save">GUARDAR USUARIO</button>
+        <button type="submit" class="btn-save" id="btnSubmit">GUARDAR USUARIO</button>
         <a href="{{ url_for('usuarios_list') }}" class="btn-cancel">Cancelar</a>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const accion = "{{ accion }}";
+    if (accion !== 'crear') return; // Solo validar si estamos creando
+
+    const password = document.getElementById('password');
+    const confirm = document.getElementById('confirm_password');
+    const btn = id="btnSubmit";
+    const submitBtn = document.querySelector('.btn-save[type="submit"]');
+
+    const reqLongitud = document.getElementById('req-longitud');
+    const reqNumero = document.getElementById('req-numero');
+    const reqSimbolo = document.getElementById('req-simbolo');
+    const msgCoincide = document.getElementById('msg-coincide');
+
+    const regexNumero = /\d/;
+    const regexSimbolo = /[!@#$%^&*(),.?":{}|<>]/;
+
+    function validar() {
+        const pVal = password.value;
+        const cVal = confirm.value;
+
+        const tieneLongitud = pVal.length >= 8;
+        const tieneNumero = regexNumero.test(pVal);
+        const tieneSimbolo = regexSimbolo.test(pVal);
+        const coinciden = (pVal === cVal && pVal !== "");
+
+        // Actualizar Lista Visual
+        actualizarItem(reqLongitud, tieneLongitud);
+        actualizarItem(reqNumero, tieneNumero);
+        actualizarItem(reqSimbolo, tieneSimbolo);
+        actualizarItem(msgCoincide, coinciden);
+
+        // Feedback en Inputs
+        password.className = pVal === "" ? "" : (tieneLongitud && tieneNumero && tieneSimbolo ? "input-success" : "input-error");
+        confirm.className = cVal === "" ? "" : (coinciden ? "input-success" : "input-error");
+
+        // Habilitar/Deshabilitar Botón
+        submitBtn.disabled = !(tieneLongitud && tieneNumero && tieneSimbolo && coinciden);
+    }
+
+    function actualizarItem(el, cumple) {
+        if (cumple) {
+            el.classList.add('cumplido');
+            el.textContent = el.textContent.replace('○', '●');
+        } else {
+            el.classList.remove('cumplido');
+            el.textContent = el.textContent.replace('●', '○');
+        }
+    }
+
+    password.addEventListener('input', validar);
+    confirm.addEventListener('input', validar);
+});
+</script>
 {% endblock %}
