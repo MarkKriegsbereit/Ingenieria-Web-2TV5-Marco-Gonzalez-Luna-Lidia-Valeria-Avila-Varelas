@@ -7,7 +7,7 @@ import platform
 import sys
 
 # --- CONFIGURACIÓN ---
-SERVER_URL = 'http://3.143.186.4.sslip.io:5000' 
+SERVER_URL = 'http://127.0.0.1:5000' 
 BAUD_RATE = 115200  
 
 sio = socketio.Client(reconnection=True, reconnection_attempts=5, reconnection_delay=1)
